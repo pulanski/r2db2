@@ -1,3 +1,5 @@
+#[allow(unused_imports)]
+use crate::disk::setup;
 use anyhow::Result;
 use common::PAGE_SIZE;
 use parking_lot::RwLock;
@@ -60,6 +62,25 @@ impl DiskManager {
             "[DiskManager::new] Initializing storage manager for {} with log file {}",
             db_file, log_file
         );
+
+        if db_file.is_empty() {
+            return Err(DiskManagerError::IoError(
+                "Database file path cannot be empty".to_string(),
+            )
+            .into());
+        }
+
+        if !std::path::Path::new(db_file).exists() {
+            debug!(
+                "[DiskManager::new] Database file {} does not exist. Creating a new database file",
+                db_file
+            );
+        } else {
+            debug!(
+                "[DiskManager::new] Database file {} exists. Opening the existing database file",
+                db_file
+            );
+        }
 
         let db_io = File::options()
             .read(true)
@@ -144,11 +165,21 @@ impl DiskManager {
 
     #[instrument(skip(self))]
     pub async fn write_page_async(&self, page_id: u32, page_data: &[u8]) -> Result<()> {
+        if page_data.len() > PAGE_SIZE {
+            return Err(DiskManagerError::PageSizeError.into());
+        }
+
         debug!(
             "[DiskManager::write_page_async] Writing page {} (async) with {} bytes",
             page_id,
             page_data.len()
         );
+
+        // If data itself is less than PAGE_SIZE, we need to pad it with zeros
+        let mut page_data = page_data.to_vec();
+        if page_data.len() < PAGE_SIZE {
+            page_data.resize(PAGE_SIZE, 0);
+        }
 
         let mut db_io = AsyncFile::options()
             .write(true)
@@ -167,7 +198,7 @@ impl DiskManager {
                 error!("Failed to seek to page {}: {}", page_id, e);
                 e
             })?;
-        db_io.write_all(page_data).await.map_err(|e| {
+        db_io.write_all(page_data.as_slice()).await.map_err(|e| {
             error!("Failed to write page {}: {}", page_id, e);
             e
         })?;
@@ -330,18 +361,10 @@ impl DiskManager {
 #[cfg(test)]
 mod single_thread_tests {
     use super::*;
-    use std::fs;
-
-    const SINGLE_THREAD_TEST_DB: &str = "testdata/single_thread_test.db";
-
-    fn setup() {
-        let _ = fs::remove_file(SINGLE_THREAD_TEST_DB);
-    }
 
     #[test]
     fn read_write_page_test() {
-        setup();
-        let dm = DiskManager::new(SINGLE_THREAD_TEST_DB).expect("Failed to create disk manager");
+        let (dm, _temp_dir) = setup();
         let mut buf = [0u8; PAGE_SIZE];
         let mut data = [0u8; PAGE_SIZE];
         data[..14].copy_from_slice(b"A test string.");
@@ -361,8 +384,7 @@ mod single_thread_tests {
 
     #[test]
     fn read_write_log_test() {
-        setup();
-        let dm = DiskManager::new(SINGLE_THREAD_TEST_DB).expect("Failed to create disk manager");
+        let (dm, _temp_dir) = setup();
         let mut buf = [0u8; PAGE_SIZE];
         let mut data = [0u8; PAGE_SIZE];
         let log_string = b"A log string.";
@@ -375,7 +397,6 @@ mod single_thread_tests {
 
     #[test]
     fn throw_bad_file_test() {
-        setup();
         let result = DiskManager::new("dev/null\\/foo/bar/baz/test.db");
         assert!(result.is_err(), "Expected an error for bad file path");
     }
@@ -386,14 +407,12 @@ mod concurrent_tests {
     use super::*;
     use rand::{distributions::Alphanumeric, Rng};
     use std::{
-        fs,
         sync::{Arc, Barrier},
         thread,
     };
 
     const NUM_THREADS: usize = 10;
     const NUM_OPS: usize = 100;
-    const CONCURRENT_TEST_DB: &str = "testdata/concurrent_test.db";
 
     fn random_data(size: usize) -> Vec<u8> {
         rand::thread_rng()
@@ -402,15 +421,9 @@ mod concurrent_tests {
             .collect()
     }
 
-    fn setup() {
-        let _ = fs::remove_file(CONCURRENT_TEST_DB);
-    }
-
     #[test]
     fn concurrent_read_write_test() {
-        setup();
-        let dm =
-            Arc::new(DiskManager::new(CONCURRENT_TEST_DB).expect("Failed to create disk manager"));
+        let (dm, _temp_dir) = setup();
         let barrier = Arc::new(Barrier::new(NUM_THREADS));
 
         let mut handles = vec![];
@@ -440,18 +453,10 @@ mod concurrent_tests {
 #[cfg(test)]
 mod async_tests {
     use super::*;
-    use std::fs;
-
-    const ASYNC_TEST_DB: &str = "testdata/test_async.db";
-
-    fn setup() {
-        let _ = fs::remove_file(ASYNC_TEST_DB);
-    }
 
     #[tokio::test]
     async fn async_read_write_page_test() {
-        setup();
-        let dm = DiskManager::new(ASYNC_TEST_DB).expect("Failed to create disk manager");
+        let (dm, _temp_dir) = setup();
         let data = vec![1u8; PAGE_SIZE];
         let page_id: u32 = 0;
 
@@ -469,20 +474,10 @@ mod async_tests {
 #[cfg(test)]
 mod high_level_api_tests {
     use super::*;
-    use std::fs;
-
-    const HIGH_LEVEL_TEST_DB: &str = "testdata/test_high_level.db";
-    const HIGH_LEVEL_TEST_ASYNC_DB: &str = "testdata/test_high_level_async.db";
-
-    fn setup() {
-        let _ = fs::remove_file(HIGH_LEVEL_TEST_DB);
-        let _ = fs::remove_file(HIGH_LEVEL_TEST_ASYNC_DB);
-    }
 
     #[test]
     fn test_write_and_read_data() {
-        setup();
-        let dm = DiskManager::new(HIGH_LEVEL_TEST_DB).unwrap();
+        let (dm, _temp_dir) = setup();
 
         let data = b"Hello, DiskManager!".to_vec();
         dm.write_data(0, &data).unwrap();
@@ -493,8 +488,7 @@ mod high_level_api_tests {
 
     #[tokio::test]
     async fn test_write_and_read_data_async() {
-        setup();
-        let dm = DiskManager::new(HIGH_LEVEL_TEST_ASYNC_DB).unwrap();
+        let (dm, _temp_dir) = setup();
 
         let data = b"Hello, Async DiskManager!".to_vec();
         dm.write_data_async(0, &data).await.unwrap();

@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 
 use super::DiskManager;
+#[allow(unused_imports)]
+use crate::disk::setup;
 use common::PAGE_SIZE;
 use parking_lot::Mutex;
 use std::cmp::Ordering;
@@ -363,20 +365,10 @@ impl DiskScheduler {
 #[cfg(test)]
 mod scheduler_tests {
     use super::*;
-    use common::PAGE_SIZE;
-
-    const TEST_SCHEDULE_DB: &str = "testdata/test_schedule.db";
-
-    fn setup() {
-        let _ = std::fs::remove_file(TEST_SCHEDULE_DB);
-    }
 
     #[tokio::test]
     async fn test_schedule_write_request() {
-        setup();
-
-        let dm =
-            Arc::new(DiskManager::new(TEST_SCHEDULE_DB).expect("Failed to create disk manager"));
+        let (dm, _temp_dir) = setup();
         let scheduler = DiskScheduler::new(dm.clone());
         let (tx, rx) = oneshot::channel();
 
@@ -407,10 +399,7 @@ mod scheduler_tests {
 
     #[tokio::test]
     async fn test_schedule_read_request() {
-        setup();
-
-        let dm =
-            Arc::new(DiskManager::new(TEST_SCHEDULE_DB).expect("Failed to create disk manager"));
+        let (dm, _temp_dir) = setup();
 
         let data = vec![1, 2, 3, 4];
         let _ = dm.write_page(0, &data).expect("Failed to write page");
@@ -462,62 +451,10 @@ mod scheduler_tests {
     }
 
     #[tokio::test]
-    #[ignore = "TODO: Implement write coalescing"]
-    async fn test_high_level_write_api() {
-        let dm =
-            Arc::new(DiskManager::new(TEST_SCHEDULE_DB).expect("Failed to create disk manager"));
-        let scheduler = DiskScheduler::new(dm.clone());
-
-        let data = vec![1, 2, 3, 4];
-        scheduler
-            .schedule_write(0, data.clone(), WriteStrategy::Immediate)
-            .await
-            .unwrap();
-
-        // Assert data is written to disk...
-        let mut buf = vec![0; PAGE_SIZE];
-        let _ = dm.read_page(0, &mut buf).expect("Failed to read page");
-        assert_eq!(
-            buf[0..data.len()],
-            data[..],
-            "Data should be written to disk"
-        );
-    }
-
-    #[tokio::test]
-    #[ignore = "TODO: Implement write coalescing"]
-    async fn test_high_level_read_api() {
-        let dm =
-            Arc::new(DiskManager::new(TEST_SCHEDULE_DB).expect("Failed to create disk manager"));
-
-        // Write data to disk
-        let data = vec![1, 2, 3, 4];
-        let _ = dm.write_page(0, &data).expect("Failed to write page");
-        assert_eq!(
-            dm.num_pages(),
-            1,
-            "Disk manager should contain one page of data"
-        );
-
-        let scheduler = DiskScheduler::new(dm);
-
-        let read_data = scheduler
-            .schedule_read(0)
-            .await
-            .expect("Failed to read page");
-
-        assert_eq!(read_data.len(), PAGE_SIZE, "Read data should be a page");
-        assert_eq!(
-            &read_data[0..data.len()],
-            &data[..],
-            "Data should be read from disk"
-        );
-    }
-
-    #[tokio::test]
     async fn test_buffering_logic() {
-        let dm =
-            Arc::new(DiskManager::new(TEST_SCHEDULE_DB).expect("Failed to create disk manager"));
+        let (dm, _temp_dir) = setup();
+        // let dm =
+        //     Arc::new(DiskManager::new(TEST_SCHEDULE_DB).expect("Failed to create disk manager"));
         let scheduler = DiskScheduler::new(dm.clone());
 
         let data = vec![1, 2, 3, 4];
@@ -533,9 +470,11 @@ mod scheduler_tests {
 
     #[tokio::test]
     async fn test_flush_mechanism() {
-        let dm = Arc::new(
-            DiskManager::new("testdata/test_schedule.db").expect("Failed to create disk manager"),
-        );
+        let (dm, _temp_dir) = setup();
+        // setup();
+        // let dm = Arc::new(
+        //     DiskManager::new("testdata/test_schedule.db").expect("Failed to create disk manager"),
+        // );
         let scheduler = DiskScheduler::new(dm.clone());
 
         let data = vec![1, 2, 3, 4];
@@ -550,15 +489,16 @@ mod scheduler_tests {
         // Check if the buffer is empty after flushing
         let buffer = scheduler.write_buffer.lock();
         assert!(buffer.is_empty(), "Buffer should be empty after flushing");
+
+        // Verify that data is written to disk...
+        let mut buf = vec![0; PAGE_SIZE];
+        let _ = dm.read_page(0, &mut buf).expect("Failed to read page");
+        assert_eq!(buf[0..4], [1, 2, 3, 4], "Data should be written to disk");
     }
 
     #[tokio::test]
-    #[ignore = "TODO: Implement write coalescing"]
     async fn test_schedule_write_coalescing() {
-        setup();
-
-        let dm =
-            Arc::new(DiskManager::new(TEST_SCHEDULE_DB).expect("Failed to create disk manager"));
+        let (dm, _temp_dir) = setup();
         let scheduler = DiskScheduler::new(dm.clone());
 
         let data1 = vec![1, 2, 3, 4];
@@ -594,12 +534,8 @@ mod scheduler_tests {
     }
 
     #[tokio::test]
-    #[ignore = "TODO: Implement write coalescing"]
     async fn test_buffered_write() {
-        setup();
-
-        let dm =
-            Arc::new(DiskManager::new(TEST_SCHEDULE_DB).expect("Failed to create disk manager"));
+        let (dm, _temp_dir) = setup();
         let scheduler = DiskScheduler::new(dm.clone());
 
         // Schedule a buffered write
@@ -608,6 +544,7 @@ mod scheduler_tests {
         // Check buffer size
         let buffer = scheduler.write_buffer.lock();
         assert_eq!(buffer.len(), 1, "Buffer should contain one request");
+        drop(buffer); // Explicitly drop the lock
 
         // Force flush
         scheduler.flush_write_buffer().await;
@@ -620,6 +557,60 @@ mod scheduler_tests {
         let mut buf = vec![0; PAGE_SIZE];
         let _ = dm.read_page(0, &mut buf).expect("Failed to read page");
         assert_eq!(buf[0..4], [1, 2, 3, 4], "Data should be written to disk");
+    }
+}
+
+#[cfg(test)]
+mod high_level_api_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_high_level_write_api() {
+        let (dm, _temp_dir) = setup();
+        let scheduler = DiskScheduler::new(dm.clone());
+
+        let data = vec![1, 2, 3, 4];
+        scheduler
+            .schedule_write(0, data.clone(), WriteStrategy::Immediate)
+            .await
+            .unwrap();
+
+        // Assert data is written to disk...
+        let mut buf = vec![0; PAGE_SIZE];
+        let _ = dm.read_page(0, &mut buf).expect("Failed to read page");
+        assert_eq!(
+            buf[0..data.len()],
+            data[..],
+            "Data should be written to disk"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_high_level_read_api() {
+        let (dm, _temp_dir) = setup();
+
+        // Write data to disk
+        let data = vec![1, 2, 3, 4];
+        let _ = dm.write_page(0, &data).expect("Failed to write page");
+        assert_eq!(
+            dm.num_pages(),
+            1,
+            "Disk manager should contain one page of data"
+        );
+
+        let scheduler = DiskScheduler::new(dm);
+
+        let read_data = scheduler
+            .schedule_read(0)
+            .await
+            .expect("Failed to read page");
+
+        assert_eq!(read_data.len(), PAGE_SIZE, "Read data should be a page");
+        assert_eq!(
+            &read_data[0..data.len()],
+            &data[..],
+            "Data should be read from disk"
+        );
     }
 }
 
