@@ -1,19 +1,20 @@
 [package]
-name = "r2db2"
+name = "cli"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cli = { path = "../../lib/cli" }
-
 clap = { version = "4.4.11", features = ["derive"] }
-tracing-subscriber = "0.3.18"
-tracing = "0.1.40"
-
+getset = "0.1.2"
 tracing-indicatif = "0.3.6"
+tracing = "0.1"
+tracing-subscriber = "0.3"
 indicatif = "0.17"
 futures = "0.3"
 rand = "0.8"
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1.35.0", features = ["full"] }
+anyhow = "1.0.75"
+thiserror = "1.0.50"
+rayon = "1.8.0"
