@@ -12,3 +12,8 @@ storage = { path = "../storage" }
 dashmap = "5.5.3"
 anyhow = "1.0.44"
 parking_lot = "0.12.1"
+tracing = "0.1.40"
+lru = "0.12.1"
+rand = "0.8.4"
+tokio = { version = "1.35.0", features = ["full"] }
+thiserror = "1.0.50"

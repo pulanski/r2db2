@@ -2,8 +2,8 @@
 
 use super::DiskManager;
 #[allow(unused_imports)]
-use crate::disk::setup;
-use common::PAGE_SIZE;
+use crate::disk::setup_dm;
+use common::{PageId, PAGE_SIZE};
 use parking_lot::Mutex;
 use std::cmp::Ordering;
 use std::sync::Arc;
@@ -291,7 +291,7 @@ impl DiskScheduler {
     #[instrument(name = "Scheduler::schedule_write", skip(self, data, strategy))]
     pub async fn schedule_write(
         &self,
-        page_id: u32,
+        page_id: PageId,
         data: Vec<u8>,
         strategy: WriteStrategy,
     ) -> anyhow::Result<()> {
@@ -302,7 +302,8 @@ impl DiskScheduler {
     }
 
     #[instrument(name = "Scheduler::buffered_write", skip(self, data))]
-    pub async fn buffered_write(&self, page_id: u32, data: Vec<u8>) -> anyhow::Result<()> {
+    pub async fn buffered_write(&self, page_id: PageId, data: Vec<u8>) -> anyhow::Result<()> {
+        let page_id = page_id.into();
         info!(page_id, data_len = data.len(), "Buffering write request");
 
         let request = DiskRequest::new(true, data, page_id, None, None, 0); // No completion signal
@@ -320,7 +321,9 @@ impl DiskScheduler {
     }
 
     #[instrument(name = "Scheduler::immediate_write", skip(self, data))]
-    pub async fn immediate_write(&self, page_id: u32, data: Vec<u8>) -> anyhow::Result<()> {
+    pub async fn immediate_write(&self, page_id: PageId, data: Vec<u8>) -> anyhow::Result<()> {
+        let page_id = page_id.into();
+
         info!(
             page_id,
             data_len = data.len(),
@@ -368,7 +371,7 @@ mod scheduler_tests {
 
     #[tokio::test]
     async fn test_schedule_write_request() {
-        let (dm, _temp_dir) = setup();
+        let (dm, _temp_dir) = setup_dm();
         let scheduler = DiskScheduler::new(dm.clone());
         let (tx, rx) = oneshot::channel();
 
@@ -399,7 +402,7 @@ mod scheduler_tests {
 
     #[tokio::test]
     async fn test_schedule_read_request() {
-        let (dm, _temp_dir) = setup();
+        let (dm, _temp_dir) = setup_dm();
 
         let data = vec![1, 2, 3, 4];
         let _ = dm.write_page(0, &data).expect("Failed to write page");
@@ -452,14 +455,14 @@ mod scheduler_tests {
 
     #[tokio::test]
     async fn test_buffering_logic() {
-        let (dm, _temp_dir) = setup();
+        let (dm, _temp_dir) = setup_dm();
         // let dm =
         //     Arc::new(DiskManager::new(TEST_SCHEDULE_DB).expect("Failed to create disk manager"));
         let scheduler = DiskScheduler::new(dm.clone());
 
         let data = vec![1, 2, 3, 4];
         scheduler
-            .schedule_write(0, data.clone(), WriteStrategy::Buffered)
+            .schedule_write(PageId::from(0), data.clone(), WriteStrategy::Buffered)
             .await
             .unwrap();
 
@@ -470,7 +473,7 @@ mod scheduler_tests {
 
     #[tokio::test]
     async fn test_flush_mechanism() {
-        let (dm, _temp_dir) = setup();
+        let (dm, _temp_dir) = setup_dm();
         // setup();
         // let dm = Arc::new(
         //     DiskManager::new("testdata/test_schedule.db").expect("Failed to create disk manager"),
@@ -479,7 +482,7 @@ mod scheduler_tests {
 
         let data = vec![1, 2, 3, 4];
         scheduler
-            .schedule_write(0, data.clone(), WriteStrategy::Buffered)
+            .schedule_write(PageId::from(0), data.clone(), WriteStrategy::Buffered)
             .await
             .unwrap();
 
@@ -498,7 +501,7 @@ mod scheduler_tests {
 
     #[tokio::test]
     async fn test_schedule_write_coalescing() {
-        let (dm, _temp_dir) = setup();
+        let (dm, _temp_dir) = setup_dm();
         let scheduler = DiskScheduler::new(dm.clone());
 
         let data1 = vec![1, 2, 3, 4];
@@ -506,11 +509,11 @@ mod scheduler_tests {
 
         // Schedule two write requests
         scheduler
-            .schedule_write(0, data1.clone(), WriteStrategy::Buffered)
+            .schedule_write(PageId::from(0), data1.clone(), WriteStrategy::Buffered)
             .await
             .unwrap();
         scheduler
-            .schedule_write(1, data2.clone(), WriteStrategy::Buffered)
+            .schedule_write(PageId::from(1), data2.clone(), WriteStrategy::Buffered)
             .await
             .unwrap();
 
@@ -535,11 +538,14 @@ mod scheduler_tests {
 
     #[tokio::test]
     async fn test_buffered_write() {
-        let (dm, _temp_dir) = setup();
+        let (dm, _temp_dir) = setup_dm();
         let scheduler = DiskScheduler::new(dm.clone());
 
         // Schedule a buffered write
-        scheduler.buffered_write(0, vec![1, 2, 3, 4]).await.unwrap();
+        scheduler
+            .buffered_write(PageId::from(0), vec![1, 2, 3, 4])
+            .await
+            .unwrap();
 
         // Check buffer size
         let buffer = scheduler.write_buffer.lock();
@@ -566,12 +572,12 @@ mod high_level_api_tests {
 
     #[tokio::test]
     async fn test_high_level_write_api() {
-        let (dm, _temp_dir) = setup();
+        let (dm, _temp_dir) = setup_dm();
         let scheduler = DiskScheduler::new(dm.clone());
 
         let data = vec![1, 2, 3, 4];
         scheduler
-            .schedule_write(0, data.clone(), WriteStrategy::Immediate)
+            .schedule_write(PageId::from(0), data.clone(), WriteStrategy::Immediate)
             .await
             .unwrap();
 
@@ -587,7 +593,7 @@ mod high_level_api_tests {
 
     #[tokio::test]
     async fn test_high_level_read_api() {
-        let (dm, _temp_dir) = setup();
+        let (dm, _temp_dir) = setup_dm();
 
         // Write data to disk
         let data = vec![1, 2, 3, 4];

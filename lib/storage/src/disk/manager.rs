@@ -1,5 +1,5 @@
 #[allow(unused_imports)]
-use crate::disk::setup;
+use crate::disk::setup_dm;
 use anyhow::Result;
 use common::PAGE_SIZE;
 use parking_lot::RwLock;
@@ -364,7 +364,7 @@ mod single_thread_tests {
 
     #[test]
     fn read_write_page_test() {
-        let (dm, _temp_dir) = setup();
+        let (dm, _temp_dir) = setup_dm();
         let mut buf = [0u8; PAGE_SIZE];
         let mut data = [0u8; PAGE_SIZE];
         data[..14].copy_from_slice(b"A test string.");
@@ -384,7 +384,7 @@ mod single_thread_tests {
 
     #[test]
     fn read_write_log_test() {
-        let (dm, _temp_dir) = setup();
+        let (dm, _temp_dir) = setup_dm();
         let mut buf = [0u8; PAGE_SIZE];
         let mut data = [0u8; PAGE_SIZE];
         let log_string = b"A log string.";
@@ -423,7 +423,7 @@ mod concurrent_tests {
 
     #[test]
     fn concurrent_read_write_test() {
-        let (dm, _temp_dir) = setup();
+        let (dm, _temp_dir) = setup_dm();
         let barrier = Arc::new(Barrier::new(NUM_THREADS));
 
         let mut handles = vec![];
@@ -456,7 +456,7 @@ mod async_tests {
 
     #[tokio::test]
     async fn async_read_write_page_test() {
-        let (dm, _temp_dir) = setup();
+        let (dm, _temp_dir) = setup_dm();
         let data = vec![1u8; PAGE_SIZE];
         let page_id: u32 = 0;
 
@@ -477,7 +477,7 @@ mod high_level_api_tests {
 
     #[test]
     fn test_write_and_read_data() {
-        let (dm, _temp_dir) = setup();
+        let (dm, _temp_dir) = setup_dm();
 
         let data = b"Hello, DiskManager!".to_vec();
         dm.write_data(0, &data).unwrap();
@@ -488,7 +488,7 @@ mod high_level_api_tests {
 
     #[tokio::test]
     async fn test_write_and_read_data_async() {
-        let (dm, _temp_dir) = setup();
+        let (dm, _temp_dir) = setup_dm();
 
         let data = b"Hello, Async DiskManager!".to_vec();
         dm.write_data_async(0, &data).await.unwrap();

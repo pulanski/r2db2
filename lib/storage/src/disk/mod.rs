@@ -1,12 +1,13 @@
 mod manager;
 mod scheduler;
 
-use std::sync::Arc;
-
 pub use manager::DiskManager;
+pub use scheduler::*;
+
+use std::sync::Arc;
 use tempfile::TempDir;
 
-fn setup() -> (Arc<DiskManager>, TempDir) {
+pub fn setup_dm() -> (Arc<DiskManager>, TempDir) {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let db_name = format!("test_{}.db", rand::random::<u32>());
     let db_path = temp_dir.path().join(db_name).to_string_lossy().to_string();

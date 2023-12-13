@@ -3,6 +3,8 @@ use common::FrameId;
 mod lru;
 mod lru_k;
 
+pub use lru::LRUReplacer;
+
 /// Policy for cache replacement
 pub enum ReplacementPolicy {
     LRU,

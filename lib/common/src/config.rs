@@ -1,5 +1,7 @@
 //! Various configuration parameters for the dbms.
 
+use std::fmt;
+
 use serde::{Deserialize, Serialize};
 use shrinkwraprs::Shrinkwrap;
 
@@ -32,7 +34,45 @@ pub const MAX_TRANSACTIONS: usize = 10;
     Deserialize,
     Shrinkwrap,
 )]
-pub struct FrameId(u32);
+pub struct FrameId(pub u32);
+
+impl From<FrameId> for u32 {
+    fn from(frame_id: FrameId) -> Self {
+        frame_id.0
+    }
+}
+
+impl From<i32> for FrameId {
+    fn from(frame_id: i32) -> Self {
+        if frame_id < 0 {
+            panic!("FrameId out of range")
+        }
+
+        Self(frame_id as u32)
+    }
+}
+
+impl From<usize> for FrameId {
+    fn from(frame_id: usize) -> Self {
+        if frame_id > u32::MAX as usize {
+            panic!("FrameId out of range")
+        }
+
+        Self(frame_id as u32)
+    }
+}
+
+impl From<u32> for FrameId {
+    fn from(frame_id: u32) -> Self {
+        Self(frame_id)
+    }
+}
+
+impl fmt::Display for FrameId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "FrameId({})", self.0)
+    }
+}
 
 /// Unique identifier for a page. Pages are identified by a tuple of (file_id, page_number).
 #[derive(
@@ -49,9 +89,13 @@ pub struct FrameId(u32);
     Deserialize,
     Shrinkwrap,
 )]
-pub struct PageId(u32);
+pub struct PageId(pub u32);
 
-// impl From
+impl fmt::Display for PageId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "PageId({})", self.0)
+    }
+}
 
 impl From<PageId> for u32 {
     fn from(page_id: PageId) -> Self {
@@ -62,6 +106,26 @@ impl From<PageId> for u32 {
 impl From<u32> for PageId {
     fn from(page_id: u32) -> Self {
         Self(page_id)
+    }
+}
+
+impl From<i32> for PageId {
+    fn from(page_id: i32) -> Self {
+        if page_id < 0 {
+            panic!("PageId out of range")
+        }
+
+        Self(page_id as u32)
+    }
+}
+
+impl From<usize> for PageId {
+    fn from(page_id: usize) -> Self {
+        if page_id > u32::MAX as usize {
+            panic!("PageId out of range")
+        }
+
+        Self(page_id as u32)
     }
 }
 
