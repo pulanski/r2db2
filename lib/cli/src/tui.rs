@@ -22,12 +22,10 @@ pub async fn handle_sql_command(args: &SqlArgs) {
         handles.push(query_handle);
     }
 
-    let handle_count = handles.len();
     for handle in handles {
         handle.await.unwrap();
     }
 
-    debug!("Processed {} queries", handle_count);
     info!("SQL command processing completed");
 }
 

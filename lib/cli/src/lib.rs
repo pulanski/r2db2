@@ -33,7 +33,6 @@ pub struct SqlArgs {
     #[getset(get = "pub")]
     command: Option<String>,
     /// Path to the database file, use ':memory:' for an in-memory database
-    #[arg(short, long)]
     #[getset(get = "pub")]
     db_path: Option<String>,
 }
