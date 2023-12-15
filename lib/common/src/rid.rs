@@ -46,9 +46,9 @@ pub struct RID {
 }
 
 impl RID {
-    pub fn new(page_id: PageId, slot_num: u32) -> Self {
+    pub fn new(page_id: impl Into<PageId>, slot_num: u32) -> Self {
         Self {
-            page_id: Some(page_id),
+            page_id: Some(page_id.into()),
             slot_num,
         }
     }

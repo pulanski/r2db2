@@ -9,6 +9,7 @@
 #![allow(dead_code)]
 
 use crate::{DataType, DataTypeKind, TypeError};
+use serde::{Deserialize, Serialize};
 use std::{
     fmt,
     ops::{Add, Div, Mul, Sub},
@@ -76,7 +77,7 @@ use typed_builder::TypedBuilder;
 /// assert_eq!(false_value.or(&true_value), Value::new(DataType::Boolean(true))); // false || true == true
 /// // ...
 /// ```
-#[derive(Debug, Clone, PartialEq, PartialOrd, TypedBuilder)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, TypedBuilder, Serialize, Deserialize)]
 pub struct Value {
     data: DataType,
 }
@@ -88,7 +89,7 @@ impl Value {
     }
 
     /// Determines if the [`Value`] is a [`Null`] type.
-    fn is_null(&self) -> bool {
+    pub fn is_null(&self) -> bool {
         matches!(self.data, DataType::Null)
     }
 
@@ -256,6 +257,23 @@ impl Value {
             }
             _ => Value::new(DataType::Null),
         }
+    }
+
+    // Serialize `Value` into a byte vector
+    pub fn serialize_to(&self) -> Result<Vec<u8>, serde_json::Error> {
+        serde_json::to_vec(self)
+    }
+
+    // Deserialize `Value` from a byte slice
+    pub fn deserialize_from(slice: &[u8]) -> Result<Self, serde_json::Error> {
+        serde_json::from_slice(slice)
+    }
+
+    pub fn deserialize_from_type(
+        slice: &[u8],
+        kind: DataTypeKind,
+    ) -> Result<Self, serde_json::Error> {
+        serde_json::from_slice::<Value>(slice).map(|v| v.coerce_to(kind).unwrap())
     }
 }
 
