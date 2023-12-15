@@ -17,7 +17,7 @@
 //! use catalog::Column;
 //! use ty::DataTypeKind;
 //!
-//! let fixed_column = Column::new_fixed("id".to_string(), DataTypeKind::Integer).expect("Failed to create a new fixed-length column.");
+//! let fixed_column = Column::new_fixed("id", DataTypeKind::Integer).expect("Failed to create a new fixed-length column.");
 //! ```
 //!
 //! To create a new variable-length column:
@@ -26,7 +26,7 @@
 //! use catalog::Column;
 //! use ty::DataTypeKind;
 //!
-//! let varlen_column = Column::new_varlen("name".to_string(), DataTypeKind::VarChar, 255).expect("Failed to create a new variable-length column.");
+//! let varlen_column = Column::new_varlen("name", DataTypeKind::VarChar, 255).expect("Failed to create a new variable-length column.");
 //! ```
 
 use anyhow::Result;
@@ -34,6 +34,7 @@ use getset::{Getters, Setters};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use thiserror::Error;
+use tracing::warn;
 use ty::DataTypeKind;
 use typed_builder::TypedBuilder;
 
@@ -108,7 +109,7 @@ pub struct Column {
 
 impl Column {
     /// Creates a new fixed-length column.
-    pub fn new_fixed(column_name: String, column_type: DataTypeKind) -> Result<Self, ColumnError> {
+    pub fn new_fixed(column_name: &str, column_type: DataTypeKind) -> Result<Self, ColumnError> {
         let length = match &column_type {
             DataTypeKind::SmallInt
             | DataTypeKind::Integer
@@ -116,11 +117,14 @@ impl Column {
             | DataTypeKind::Boolean => 4,
             DataTypeKind::Float | DataTypeKind::DoublePrecision => 8,
             DataTypeKind::DateTime => 8,
-            _ => return Err(ColumnError::InvalidType),
+            _ => {
+                warn!("Invalid type for this operation. Expected a fixed-length type (e.g., integer, float, etc.), but found: {:?}", column_type);
+                return Err(ColumnError::InvalidType);
+            }
         };
 
         Ok(Column::builder()
-            .column_name(column_name)
+            .column_name(column_name.to_string())
             .column_type(column_type)
             .length(ColumnLength::Fixed(length))
             .column_offset(0)
@@ -131,7 +135,7 @@ impl Column {
     /// This is useful when creating a column in a table with multiple columns.
     /// The offset is the sum of the lengths of the previous columns.
     pub fn new_fixed_with_offset(
-        column_name: String,
+        column_name: &str,
         column_type: DataTypeKind,
         column_offset: u32,
     ) -> Result<Self, ColumnError> {
@@ -142,11 +146,14 @@ impl Column {
             | DataTypeKind::Boolean => 4,
             DataTypeKind::Float | DataTypeKind::DoublePrecision => 8,
             DataTypeKind::DateTime => 8,
-            _ => return Err(ColumnError::InvalidType),
+            _ => {
+                warn!("Invalid type for this operation. Expected a fixed-length type (e.g., integer, float, etc.), but found: {:?}", column_type);
+                return Err(ColumnError::InvalidType);
+            }
         };
 
         Ok(Column::builder()
-            .column_name(column_name)
+            .column_name(column_name.to_string())
             .column_type(column_type)
             .length(ColumnLength::Fixed(length))
             .column_offset(column_offset)
@@ -155,16 +162,25 @@ impl Column {
 
     /// Creates a new variable-length column.
     pub fn new_varlen(
-        column_name: String,
+        column_name: &str,
         column_type: DataTypeKind,
         length: u32,
     ) -> Result<Self, ColumnError> {
         if length == 0 {
+            warn!(
+                "Invalid length for this operation. Expected a positive integer, but found: {:?}",
+                length
+            );
             return Err(ColumnError::InvalidLength);
         }
 
+        if column_type != DataTypeKind::VarChar {
+            warn!("Invalid type for this operation. Expected a variable-length type (e.g., varchar), but found: {:?}", column_type);
+            return Err(ColumnError::InvalidType);
+        }
+
         Ok(Column::builder()
-            .column_name(column_name)
+            .column_name(column_name.to_string())
             .column_type(column_type)
             .length(ColumnLength::Variable(length))
             .column_offset(0)
@@ -175,21 +191,38 @@ impl Column {
     /// This is useful when creating a column in a table with multiple columns.
     /// The offset is the sum of the lengths of the previous columns.
     pub fn new_varlen_with_offset(
-        column_name: String,
+        column_name: &str,
         column_type: DataTypeKind,
         length: u32,
         column_offset: u32,
     ) -> Result<Self, ColumnError> {
         if length == 0 {
+            warn!(
+                "Invalid length for this operation. Expected a positive integer, but found: {:?}",
+                length
+            );
             return Err(ColumnError::InvalidLength);
         }
 
+        if column_type != DataTypeKind::VarChar {
+            warn!("Invalid type for this operation. Expected a variable-length type (e.g., varchar), but found: {:?}", column_type);
+            return Err(ColumnError::InvalidType);
+        }
+
         Ok(Column::builder()
-            .column_name(column_name)
+            .column_name(column_name.to_string())
             .column_type(column_type)
             .length(ColumnLength::Variable(length))
             .column_offset(column_offset)
             .build())
+    }
+
+    /// Returns `true` iff the column is fixed-length, `false` otherwise.
+    pub fn is_inlined(&self) -> bool {
+        match self.length {
+            ColumnLength::Fixed(_) => true,
+            ColumnLength::Variable(_) => false,
+        }
     }
 }
 
@@ -209,7 +242,7 @@ mod tests {
 
     #[test]
     fn test_create_fixed_column() {
-        let column = Column::new_fixed("id".to_string(), DataTypeKind::Integer).unwrap();
+        let column = Column::new_fixed("id", DataTypeKind::Integer).unwrap();
         assert_eq!(column.column_name(), "id");
         assert_eq!(column.column_type(), &DataTypeKind::Integer);
         assert_eq!(column.length(), &ColumnLength::Fixed(4));
@@ -217,7 +250,7 @@ mod tests {
 
     #[test]
     fn test_create_varchar_column() {
-        let column = Column::new_varlen("name".to_string(), DataTypeKind::VarChar, 255).unwrap();
+        let column = Column::new_varlen("name", DataTypeKind::VarChar, 255).unwrap();
         assert_eq!(column.column_name(), "name");
         assert!(matches!(column.column_type(), DataTypeKind::VarChar));
         assert_eq!(column.length(), &ColumnLength::Variable(255));
@@ -225,14 +258,13 @@ mod tests {
 
     #[test]
     fn test_invalid_varchar_column() {
-        let column = Column::new_varlen("name".to_string(), DataTypeKind::VarChar, 0);
+        let column = Column::new_varlen("name", DataTypeKind::VarChar, 0);
         assert!(column.is_err());
     }
 
     #[test]
     fn test_create_fixed_column_with_offset() {
-        let column =
-            Column::new_fixed_with_offset("id".to_string(), DataTypeKind::Integer, 4).unwrap();
+        let column = Column::new_fixed_with_offset("id", DataTypeKind::Integer, 4).unwrap();
         assert_eq!(column.column_name(), "id");
         assert_eq!(column.column_type(), &DataTypeKind::Integer);
         assert_eq!(column.length(), &ColumnLength::Fixed(4));
@@ -241,9 +273,7 @@ mod tests {
 
     #[test]
     fn test_create_varchar_column_with_offset() {
-        let column =
-            Column::new_varlen_with_offset("name".to_string(), DataTypeKind::VarChar, 255, 4)
-                .unwrap();
+        let column = Column::new_varlen_with_offset("name", DataTypeKind::VarChar, 255, 4).unwrap();
         assert_eq!(column.column_name(), "name");
         assert!(matches!(column.column_type(), DataTypeKind::VarChar));
         assert_eq!(column.length(), &ColumnLength::Variable(255));
@@ -252,20 +282,19 @@ mod tests {
 
     #[test]
     fn test_invalid_fixed_column() {
-        let column = Column::new_fixed("id".to_string(), DataTypeKind::VarChar);
+        let column = Column::new_fixed("id", DataTypeKind::VarChar);
         assert!(column.is_err());
     }
 
     #[test]
     fn test_invalid_fixed_column_with_offset() {
-        let column = Column::new_fixed_with_offset("id".to_string(), DataTypeKind::VarChar, 4);
+        let column = Column::new_fixed_with_offset("id", DataTypeKind::VarChar, 4);
         assert!(column.is_err());
     }
 
     #[test]
     fn test_invalid_varchar_column_with_offset() {
-        let column =
-            Column::new_varlen_with_offset("name".to_string(), DataTypeKind::VarChar, 0, 4);
+        let column = Column::new_varlen_with_offset("name", DataTypeKind::VarChar, 0, 4);
         assert!(column.is_err());
     }
 }
