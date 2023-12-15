@@ -15,3 +15,7 @@ serde = { version = "1.0.193", features = ["derive"] }
 serde_json = "1.0.108"
 getset = "0.1.2"
 typed-builder = "0.18.0"
+tracing = "0.1.40"
+
+[dev-dependencies]
+pretty_assertions_sorted = "1.2.3"

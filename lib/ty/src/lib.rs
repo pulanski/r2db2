@@ -45,6 +45,7 @@
 // mod varchar;
 
 pub mod value;
+pub use value::*;
 
 use chrono::NaiveDateTime;
 use common::traits::encode::{Encodable, EncodingError};

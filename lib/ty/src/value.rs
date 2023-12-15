@@ -34,7 +34,7 @@ use typed_builder::TypedBuilder;
 /// let value2 = Value::new(DataType::Integer(20));
 /// let sum = value1 + value2;
 ///
-/// assert_eq!(sum, Value::new(DataType::Integer(30)));
+/// assert_eq!(sum, Ok(Value::new(DataType::Integer(30))));
 /// ```
 ///
 /// ## String operations:
