@@ -4,7 +4,10 @@
 //! complex types (arrays, maps, enums), and special types like DateTime and UUID.
 //!
 //! Example Usage:
+//!
 //! ```
+//! use ty::{DataType, DataTypeKind};
+//! use serde_json::json;
 //! let integer_data = DataType::Integer(42);
 //! let text_data = DataType::Text("Hello, World!".to_string());
 //! let json_data = DataType::Json(json!({"key": "value"}));
@@ -60,15 +63,15 @@ impl std::fmt::Display for TypeError {
 
 impl std::error::Error for TypeError {}
 
-trait TypeCheck {
+pub trait TypeCheck {
     fn is_compatible_with(&self, other: &Self) -> bool;
     fn try_cast_to(&self, target: &Self) -> Result<Self, TypeError>
     where
         Self: Sized;
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-enum DataTypeKind {
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum DataTypeKind {
     SmallInt,
     Integer,
     BigInt,
@@ -80,6 +83,7 @@ enum DataTypeKind {
     BigSerial,
     Float,
     Text,
+    VarChar,
     Blob,
     DateTime,
     Json,
@@ -100,7 +104,7 @@ enum DataTypeKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-enum DataType {
+pub enum DataType {
     SmallInt(i16),
     Integer(i32),
     BigInt(i64),
@@ -113,6 +117,7 @@ enum DataType {
     Boolean(bool),
     Float(f64),
     Text(String),
+    VarChar(String),
     Blob(Vec<u8>),
     DateTime(chrono::NaiveDateTime),
     Json(serde_json::Value),
@@ -230,6 +235,7 @@ impl DataType {
             DataType::Circle(val) => {
                 val.center.x == 0.0 && val.center.y == 0.0 && val.radius == 0.0
             }
+            DataType::VarChar(val) => val.is_empty(),
         }
     }
 
@@ -262,6 +268,7 @@ impl DataType {
             DataType::Path(_) => "PATH".to_string(),
             DataType::Polygon(_) => "POLYGON".to_string(),
             DataType::Circle(_) => "CIRCLE".to_string(),
+            DataType::VarChar(_) => "VARCHAR".to_string(),
         }
     }
 }
@@ -342,12 +349,13 @@ impl fmt::Display for DataType {
             DataType::Circle(val) => {
                 write!(f, "Circle(center: {}, radius: {})", val.center, val.radius)
             }
+            DataType::VarChar(val) => write!(f, "{}", val),
         }
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-struct Point {
+pub struct Point {
     x: f64,
     y: f64,
 }
@@ -368,14 +376,14 @@ impl fmt::Display for Point {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-struct Line {
+pub struct Line {
     a: f64,
     b: f64,
     c: f64,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-struct LineSegment {
+pub struct LineSegment {
     start: Point,
     end: Point,
 }
@@ -396,29 +404,29 @@ impl fmt::Display for LineSegment {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-struct BoxType {
+pub struct BoxType {
     upper_right: Point,
     lower_left: Point,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-enum PathType {
+pub enum PathType {
     Open(Vec<Point>),
     Closed(Vec<Point>),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-struct Polygon {
+pub struct Polygon {
     points: Vec<Point>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-struct Circle {
+pub struct Circle {
     center: Point,
     radius: f64,
 }
 
-struct TypeMetadata {
+pub struct TypeMetadata {
     name: String,
     description: String,
     size: Option<usize>, // Size in bytes
@@ -509,12 +517,13 @@ impl Encodable for DataType {
                 result.append(&mut val.radius.to_be_bytes().to_vec());
                 Ok(result)
             }
+            DataType::VarChar(val) => Ok(val.as_bytes().to_vec()),
         }
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
-enum Nullable<T> {
+pub enum Nullable<T> {
     Null,
     Value(T),
 }
