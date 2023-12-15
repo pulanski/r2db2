@@ -21,7 +21,7 @@ The Type System is a comprehensive framework designed to handle various data typ
 
 - **Creating DataTypes**: Data types can be instantiated directly, e.g., `DataType::Integer(42)` or `DataType::Text("example".to_string())`.
 - **Type Coercion**: Convert a data type into another (if compatible) using `coerce_to` method, e.g., `data.coerce_to(&DataTypeKind::Float)`.
-- **Encoding/Decoding**: Serialize a `DataType` instance into bytes using `encode` method and deserialize using appropriate methods from bytes back to `DataType`.
+- **Encoding/Decoding**: Serialize a [`DataType`] instance into bytes using `encode` method and deserialize using appropriate methods from bytes back to [`DataType`].
 
 #### Examples
 

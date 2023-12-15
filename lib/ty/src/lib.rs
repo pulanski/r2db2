@@ -28,7 +28,23 @@
 //! DataTypes can be serialized for storage or network transmission and deserialized back.
 //! This feature supports complex nested types and ensures data integrity across different platforms.
 
-#![allow(dead_code)]
+// TODO: refactor and reorganize the code
+// mod array;
+// mod boolean;
+// mod datetime;
+// mod decimal;
+// mod enum;
+// mod float;
+// mod integer;
+// mod json;
+// mod map;
+// mod null;
+// mod range;
+// mod text;
+// mod uuid;
+// mod varchar;
+
+pub mod value;
 
 use chrono::NaiveDateTime;
 use common::traits::encode::{Encodable, EncodingError};
@@ -70,8 +86,10 @@ pub trait TypeCheck {
         Self: Sized;
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum DataTypeKind {
+    #[default]
+    Null,
     SmallInt,
     Integer,
     BigInt,
@@ -105,6 +123,7 @@ pub enum DataTypeKind {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum DataType {
+    Null,
     SmallInt(i16),
     Integer(i32),
     BigInt(i64),
@@ -236,6 +255,7 @@ impl DataType {
                 val.center.x == 0.0 && val.center.y == 0.0 && val.radius == 0.0
             }
             DataType::VarChar(val) => val.is_empty(),
+            DataType::Null => true,
         }
     }
 
@@ -269,9 +289,69 @@ impl DataType {
             DataType::Polygon(_) => "POLYGON".to_string(),
             DataType::Circle(_) => "CIRCLE".to_string(),
             DataType::VarChar(_) => "VARCHAR".to_string(),
+            DataType::Null => "NULL".to_string(),
         }
     }
 }
+
+impl PartialOrd for DataType {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match (self, other) {
+            (DataType::SmallInt(a), DataType::SmallInt(b)) => a.partial_cmp(b),
+            (DataType::Float(a), DataType::Float(b)) => a.partial_cmp(b),
+            (DataType::BigInt(a), DataType::BigInt(b)) => a.partial_cmp(b),
+            (DataType::Decimal(a), DataType::Decimal(b)) => a.partial_cmp(b),
+            (DataType::Real(a), DataType::Real(b)) => a.partial_cmp(b),
+            (DataType::DoublePrecision(a), DataType::DoublePrecision(b)) => a.partial_cmp(b),
+            (DataType::SmallSerial(a), DataType::SmallSerial(b)) => a.partial_cmp(b),
+            (DataType::Serial(a), DataType::Serial(b)) => a.partial_cmp(b),
+            (DataType::BigSerial(a), DataType::BigSerial(b)) => a.partial_cmp(b),
+            (DataType::Text(a), DataType::Text(b)) => a.partial_cmp(b),
+            (DataType::Blob(a), DataType::Blob(b)) => a.partial_cmp(b),
+            (DataType::DateTime(a), DataType::DateTime(b)) => a.partial_cmp(b),
+            (DataType::Json(a), DataType::Json(b)) => {
+                if a == b {
+                    // TODO: Add a better comparison for Json
+                    Some(std::cmp::Ordering::Equal)
+                } else {
+                    None
+                }
+            }
+            (DataType::Uuid(a), DataType::Uuid(b)) => a.partial_cmp(b),
+            (DataType::Array(a), DataType::Array(b)) => a.partial_cmp(b),
+            (DataType::Map(a), DataType::Map(b)) => {
+                if a == b {
+                    // TODO: Add a better comparison for Map
+                    Some(std::cmp::Ordering::Equal)
+                } else {
+                    None
+                }
+            }
+            (DataType::Enum(a, _), DataType::Enum(b, _)) => a.partial_cmp(b),
+            (DataType::Range(a, b), DataType::Range(c, d)) => {
+                if a == c {
+                    b.partial_cmp(d)
+                } else {
+                    a.partial_cmp(c)
+                }
+            }
+            (DataType::Boolean(a), DataType::Boolean(b)) => a.partial_cmp(b),
+            (DataType::Integer(a), DataType::Integer(b)) => a.partial_cmp(b),
+            (DataType::Point(a), DataType::Point(b)) => a.partial_cmp(b),
+            (DataType::Line(a), DataType::Line(b)) => a.partial_cmp(b),
+            (DataType::LineSegment(a), DataType::LineSegment(b)) => a.partial_cmp(b),
+            (DataType::Box(a), DataType::Box(b)) => a.partial_cmp(b),
+            (DataType::Path(a), DataType::Path(b)) => a.partial_cmp(b),
+            (DataType::Polygon(a), DataType::Polygon(b)) => a.partial_cmp(b),
+            (DataType::Circle(a), DataType::Circle(b)) => a.partial_cmp(b),
+            (DataType::VarChar(a), DataType::VarChar(b)) => a.partial_cmp(b),
+            (DataType::Null, DataType::Null) => Some(std::cmp::Ordering::Equal),
+            _ => None,
+        }
+    }
+}
+
+impl Eq for DataType {}
 
 impl fmt::Display for DataType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -350,11 +430,12 @@ impl fmt::Display for DataType {
                 write!(f, "Circle(center: {}, radius: {})", val.center, val.radius)
             }
             DataType::VarChar(val) => write!(f, "{}", val),
+            DataType::Null => write!(f, "NULL"),
         }
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Point {
     x: f64,
     y: f64,
@@ -375,14 +456,14 @@ impl fmt::Display for Point {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Line {
     a: f64,
     b: f64,
     c: f64,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct LineSegment {
     start: Point,
     end: Point,
@@ -403,24 +484,24 @@ impl fmt::Display for LineSegment {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct BoxType {
     upper_right: Point,
     lower_left: Point,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub enum PathType {
     Open(Vec<Point>),
     Closed(Vec<Point>),
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Polygon {
     points: Vec<Point>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Circle {
     center: Point,
     radius: f64,
@@ -518,6 +599,7 @@ impl Encodable for DataType {
                 Ok(result)
             }
             DataType::VarChar(val) => Ok(val.as_bytes().to_vec()),
+            DataType::Null => Ok(Vec::new()),
         }
     }
 }
