@@ -91,6 +91,16 @@ impl fmt::Display for FrameId {
 )]
 pub struct PageId(pub u32);
 
+impl From<i64> for PageId {
+    fn from(page_id: i64) -> Self {
+        if page_id < 0 {
+            panic!("PageId out of range")
+        }
+
+        Self(page_id as u32)
+    }
+}
+
 impl fmt::Display for PageId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "PageId({})", self.0)

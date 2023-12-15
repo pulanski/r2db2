@@ -33,7 +33,7 @@ struct RecordSlot {
 ///
 /// ## Data layout:
 ///
-/// ```
+/// ```ignore
 /// | Header | ...Free Space... | ...Records... |
 /// ```
 /// The header contains metadata such as the offset to the beginning of the free space
@@ -43,15 +43,17 @@ struct RecordSlot {
 /// ## Example:
 ///
 /// ```rust
+/// use storage::slotted_page::SlottedPage;
+///
 /// let mut page = SlottedPage::new(1024);
 /// let record = b"Example record";
-/// let slot_index = page.add_record(record).unwrap();
+/// let slot_index = page.add_record(record);
 /// let retrieved_record = page.get_record(slot_index).unwrap();
 ///
 /// println!("Retrieved record: {:?}", std::str::from_utf8(retrieved_record).unwrap());
 /// ```
 #[derive(Debug, Clone)]
-struct SlottedPage {
+pub struct SlottedPage {
     header: SlottedPageHeader,
     data: Vec<u8>, // A vector of bytes to store record data
 }

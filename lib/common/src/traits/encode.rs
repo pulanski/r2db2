@@ -12,6 +12,8 @@
 //! `EncodingError` on failure.
 //!
 //! ```rust
+//! use common::traits::encode::EncodingError;
+//!
 //! trait Encodable {
 //!    fn encode(&self) -> Result<Vec<u8>, EncodingError>;
 //! }
