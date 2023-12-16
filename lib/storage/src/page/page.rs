@@ -60,6 +60,51 @@ impl Page {
         }
         self.pin_count -= 1;
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.data.is_empty()
+    }
+
+    pub fn clear(&mut self) {
+        self.data.clear();
+    }
+
+    pub fn len(&self) -> usize {
+        self.data.len()
+    }
+
+    pub fn capacity(&self) -> usize {
+        self.data.capacity()
+    }
+
+    pub fn as_slice(&self) -> &[u8] {
+        self.data.as_slice()
+    }
+
+    pub fn as_mut_slice(&mut self) -> &mut [u8] {
+        self.data.as_mut_slice()
+    }
+
+    pub fn resize(&mut self, new_len: usize, value: u8) {
+        self.data.resize(new_len, value);
+    }
+
+    pub fn reserve(&mut self, additional: usize) {
+        self.data.reserve(additional);
+    }
+
+    pub fn truncate(&mut self, new_len: usize) {
+        self.data.truncate(new_len);
+    }
+
+    pub fn write_data(&mut self, data: &[u8]) {
+        self.data.clear();
+        self.data.extend_from_slice(data);
+    }
+
+    pub fn read_data(&self) -> Vec<u8> {
+        self.data.clone()
+    }
 }
 
 impl Default for Page {
