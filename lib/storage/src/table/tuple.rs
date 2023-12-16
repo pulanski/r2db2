@@ -93,7 +93,7 @@ impl Tuple {
 
     pub fn get_value(&self, schema: &Schema, column_idx: usize) -> Result<Value, TupleError> {
         if column_idx >= schema.columns().len() {
-            return Err(TupleError::InvalidOperation); // or a more specific error
+            return Err(TupleError::InvalidOperation);
         }
 
         let column = &schema.columns()[column_idx];
