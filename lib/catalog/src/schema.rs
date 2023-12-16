@@ -29,7 +29,7 @@ use typed_builder::TypedBuilder;
     Deserialize,
 )]
 #[getset(get = "pub", set = "pub")]
-struct Schema {
+pub struct Schema {
     length: u32,
     columns: Vec<Column>,
     tuple_is_inlined: bool,
