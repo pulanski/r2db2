@@ -3,6 +3,7 @@
 use super::DiskManager;
 #[allow(unused_imports)]
 use crate::disk::setup_dm;
+use anyhow::Result;
 use common::{PageId, PAGE_SIZE};
 use parking_lot::Mutex;
 use std::cmp::Ordering;
@@ -42,6 +43,19 @@ pub struct DiskRequest {
     read_data_sender: Option<mpsc::Sender<Vec<u8>>>,
     /// The priority of the request
     priority: u8, // Lower number means higher priority
+}
+
+impl Clone for DiskRequest {
+    fn clone(&self) -> Self {
+        DiskRequest {
+            is_write: self.is_write,
+            data: self.data.clone(),
+            page_id: self.page_id,
+            completion_signal: None, // NOTE: No completion signal for cloned requests
+            read_data_sender: self.read_data_sender.clone(),
+            priority: self.priority,
+        }
+    }
 }
 
 impl DiskRequest {
@@ -236,6 +250,26 @@ impl DiskScheduler {
         request: DiskRequest,
     ) -> Result<(), mpsc::error::SendError<DiskRequest>> {
         self.sender.send(request).await
+    }
+
+    pub async fn batch_write(&self, batch: Vec<(PageId, Vec<u8>)>) -> Result<()> {
+        let mut requests = Vec::with_capacity(batch.len());
+
+        for (page_id, data) in batch {
+            let (tx, _rx) = oneshot::channel();
+            let request = DiskRequest::new(true, data, page_id.into(), Some(tx), None, 0);
+            requests.push(request);
+        }
+
+        for request in &requests {
+            self.schedule(request.clone()).await?;
+        }
+
+        for mut request in requests {
+            request.complete().await;
+        }
+
+        Ok(())
     }
 
     pub fn start_flush_task(self: &Arc<Self>) {

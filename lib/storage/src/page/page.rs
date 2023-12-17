@@ -264,7 +264,8 @@ mod tests {
     fn test_pin_count() {
         let mut page = Page::default();
         assert_eq!(page.pin_count(), 0);
-        page.increment_pin_count();
+        page.increment_pin_count()
+            .expect("Failed to increment pin count");
         assert_eq!(page.pin_count(), 1);
         page.decrement_pin_count();
         assert_eq!(page.pin_count(), 0);
