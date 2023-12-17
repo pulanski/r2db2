@@ -184,7 +184,19 @@ pub struct PageOffset(usize);
 )]
 pub struct TxnId(u32);
 
+impl fmt::Display for TxnId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "TxnId({})", self.0)
+    }
+}
+
 /// Timestamp of a transaction. Timestamps are used to determine the relative ordering of
 /// transactions and are used to implement concurrency control.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Timestamp(u64);
+
+impl Default for Timestamp {
+    fn default() -> Self {
+        Self(u64::default())
+    }
+}
