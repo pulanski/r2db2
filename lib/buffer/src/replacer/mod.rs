@@ -6,6 +6,7 @@ mod lru_k;
 pub use lru::LRUReplacer;
 
 /// Policy for cache replacement
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ReplacementPolicy {
     LRU,
     MRU,

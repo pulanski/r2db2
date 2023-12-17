@@ -132,17 +132,24 @@ impl Transaction {
             txn_id, isolation_level
         );
 
-        Self {
-            isolation_level,
-            thread_id: std::thread::current().id(),
-            txn_id,
-            state: Arc::new(RwLock::new(TransactionState::Running)),
-            read_ts: Arc::new(RwLock::new(Timestamp::default())),
-            commit_ts: Arc::new(RwLock::new(Timestamp::default())),
-            undo_logs: Arc::new(RwLock::new(Vec::new())),
-            write_set: Arc::new(RwLock::new(HashMap::new())),
-            scan_predicates: Arc::new(RwLock::new(HashMap::new())),
-        }
+        let state = Arc::new(RwLock::new(TransactionState::Running));
+        let read_ts = Arc::new(RwLock::new(Timestamp::default()));
+        let commit_ts = Arc::new(RwLock::new(Timestamp::default()));
+        let undo_logs = Arc::new(RwLock::new(Vec::new()));
+        let write_set = Arc::new(RwLock::new(HashMap::new()));
+        let scan_predicates = Arc::new(RwLock::new(HashMap::new()));
+
+        Transaction::builder()
+            .isolation_level(isolation_level)
+            .thread_id(std::thread::current().id())
+            .txn_id(txn_id)
+            .state(state)
+            .read_ts(read_ts)
+            .commit_ts(commit_ts)
+            .undo_logs(undo_logs)
+            .write_set(write_set)
+            .scan_predicates(scan_predicates)
+            .build()
     }
 
     // Modify an existing undo log

@@ -1,9 +1,106 @@
+//! # Buffer Pool Manager
+//!
+//! Buffer Pool Manager for a database system, providing efficient management of database pages in memory.
+//! The Buffer Pool Manager plays a critical role in database performance, offering a layer between the
+//! physical disk storage and the database operations, thereby minimizing disk I/O operations.
+//!
+//! ## Architecture
+//!
+//! ```plaintext
+//! +--------------------------------------------------+
+//! |        BufferPoolManager (size = N frames)       |
+//! |  +--------------------------------------------+  |
+//! |  |               Page Table                   |  |
+//! |  |  +----------+  +---------+  +-----------+  |  |
+//! |  |  | PageId i |->| Frame 1 |  | Page Data |  |  |
+//! |  |  +----------+  +---------+  +-----------+  |  |
+//! |  |  | PageId j |->| Frame 2 |  | Page Data |  |  |
+//! |  |  +----------+  +---------+  +-----------+  |  |
+//! |  |  |   ...    |  |   ...   |  |    ...    |  |  |
+//! |  |  +----------+  +---------+  +-----------+  |  |
+//! |  |  | PageId z |->| Frame N |  | Page Data |  |  |
+//! |  |  +----------+  +---------+  +-----------+  |  |
+//! |  +--------------------------------------------+  |
+//! |                                                  |
+//! |  +--------------------------------------------+  |
+//! |  |         Replacement Policy (LRU)           |  |
+//! |  |  +------------+  +------------+  +-------+ |  |
+//! |  |  | Frame 1    |  | Frame 2    |  |  ...  | |  |
+//! |  |  +------------+  +------------+  +-------+ |  |
+//! |  +--------------------------------------------+  |
+//! |                                                  |
+//! |  +--------------------------------------------+  |
+//! |  |              Disk Scheduler                |  |
+//! |  |  +-----------+  +-----------+  +---------+ |  |
+//! |  |  | Read/Write|  | Read/Write|  |   ...   | |  |
+//! |  |  +-----------+  +-----------+  +---------+ |  |
+//! |  +--------------------------------------------+  |
+//! +--------------------------------------------------+
+//! ```
+//!
+//! ## Data Flow (High-Level)
+//!
+//! 1. Fetch Page:
+//!    - Check PageTable for PageId.
+//!    - If not in buffer pool, read from disk (Disk Scheduler) and allocate a frame.
+//!
+//! 2. New Page:
+//!    - Allocate a frame from the free list.
+//!    - If the free list is empty, use LRU policy to evict and write a page to disk if dirty.
+//!
+//! 3. Write Data:
+//!    - Write data to the page in the buffer pool.
+//!    - Mark page as dirty.
+//!
+//! 4. Eviction:
+//!    - Based on LRU policy, select a frame to evict.
+//!    - If the page is dirty, write it to disk (Disk Scheduler) before eviction.
+//!
+//! ## Functionality
+//!
+//! The Buffer Pool Manager optimizes database operations by keeping frequently accessed pages in memory.
+//! Pages are loaded into the buffer pool from disk on demand and are written back to the disk only when
+//! necessary. This reduces disk I/O, which is often considered to be the _"high pole in the tent"_ traditionally
+//! limiting database performance.
+//!
+//! ## Design Considerations
+//!
+//! - **Concurrency Control**: The buffer pool manager is designed to be thread-safe, allowing for concurrent
+//!  access to the buffer pool from multiple workers (e.g., threads, coroutines, etc.) and transactions.
+//!
+//! - **Flexibility**: The architecture allows for different replacement policies and disk schedulers to be
+//!   plugged in, making it adaptable to various performance and usage patterns (e.g., OLTP vs OLAP workloads).
+//!
+//! - **Scalability**: Designed to handle a large number of pages and concurrent operations, scaling with the
+//!   needs of the database system.
+//!
+//! ## Examples
+//!
+//! ```rust
+//! use buffer::{BufferPoolManager, ReplacementPolicy};
+//! use storage::disk::DiskManager;
+//! use std::sync::Arc;
+//!
+//! let disk_manager = Arc::new(DiskManager::new("path/to/dbfile"));
+//! let buffer_pool_manager = BufferPoolManager::new(ReplacementPolicy::LRU, disk_manager);
+//!
+//! // Operations such as creating new pages, fetching pages, and writing data can be performed
+//! // on the buffer_pool_manager instance.
+//!
+//! // More examples are demonstrated in the tests below ...
+//! ```
+//!
+//! ## Further Development
+//!
+//! Future enhancements could include more sophisticated replacement policies, better integration with
+//! transaction management for ensuring data consistency, and advanced performance tuning options.
 #![allow(dead_code, unused_variables, unused_imports)]
 
 use crate::replacer::{self, ReplacementPolicy};
 use anyhow::Result;
 use common::{FrameId, PageId, BUFFER_POOL_SIZE, PAGE_SIZE};
 use dashmap::DashMap;
+use getset::{Getters, Setters};
 use parking_lot::RwLock;
 use rand::RngCore;
 use std::{fmt, sync::Arc};
@@ -12,7 +109,8 @@ use storage::{
     page::Page,
 };
 use thiserror::Error;
-use tracing::{error, info, instrument};
+use tracing::{error, info, instrument, trace, warn};
+use typed_builder::TypedBuilder;
 
 #[derive(Error, Debug)]
 pub enum BufferPoolError {
@@ -27,24 +125,65 @@ pub enum BufferPoolError {
     // ...
 }
 
+/// The `BufferPoolManager` manages a buffer pool for pages in a database system.
+///
+/// This manager handles operations such as creating new pages, fetching pages from disk,
+/// writing pages to disk, and managing the eviction of pages based on a replacement policy.
+/// It uses a `DashMap` for concurrent access to the page table and a `RwLock` to manage
+/// the buffer pool frames.
+///
+/// # Examples
+///
+/// Basic usage:
+///
+/// ```
+/// let disk_manager = Arc::new(DiskManager::new("path/to/dbfile"));
+/// let buffer_pool_manager = BufferPoolManager::new(ReplacementPolicy::LRU, disk_manager);
+///
+/// // Create a new page
+/// let (page_id, page) = buffer_pool_manager.new_page().await.expect("Failed to create new page");
+///
+/// // Read and write data to a page
+/// buffer_pool_manager.write_data(page_id, &data).await.expect("Failed to write data");
+/// let data = buffer_pool_manager.read_data(page_id).await.expect("Failed to read data");
+/// ```
+#[derive(Debug, Getters, Setters, TypedBuilder)]
 pub struct BufferPoolManager {
-    /// Replacement policy for keeping track of unpinned pages
-    policy: ReplacementPolicy,
     /// Page table for keeping track of buffer pool pages (page_id -> frame_id)
     page_table: DashMap<PageId, FrameId>,
     /// Disk scheduler for reading/writing pages to disk
     disk_scheduler: Arc<DiskScheduler>,
     /// Replacer for keeping track of unpinned pages
     replacer: replacer::LRUReplacer,
-    /// Next page id to be allocated
-    next_page_id: Arc<PageId>,
     /// List of free frames
     free_list: Vec<FrameId>,
+    /// Next page id to be allocated
+    #[getset(get = "pub")]
+    next_page_id: Arc<PageId>,
     /// Array of buffer pool frames/pages
+    #[getset(get = "pub")]
     pool: Arc<RwLock<Vec<Page>>>,
+    /// Replacement policy for keeping track of unpinned pages
+    #[getset(get = "pub", set = "pub")]
+    policy: ReplacementPolicy,
 }
 
 impl BufferPoolManager {
+    /// Constructs a new [`BufferPoolManager`] with a given replacement policy and disk manager.
+    /// Initializes the page table, free list, and buffer pool frames.
+    ///
+    /// # Arguments
+    ///
+    /// * `policy`: The replacement policy to use for page eviction.
+    /// * `disk_manager`: Shared reference to the disk manager for I/O operations.
+    ///
+    /// # Usage
+    ///
+    /// ```
+    /// let disk_manager = Arc::new(DiskManager::new("path/to/dbfile"));
+    /// let buffer_pool_manager = BufferPoolManager::new(ReplacementPolicy::LRU, disk_manager);
+    /// ```
+    #[instrument(level = "trace")]
     pub fn new(policy: ReplacementPolicy, disk_manager: Arc<DiskManager>) -> Self {
         let disk_scheduler = DiskScheduler::new(disk_manager);
         let free_list = (0..BUFFER_POOL_SIZE)
@@ -91,72 +230,80 @@ impl BufferPoolManager {
         }
     }
 
-    pub async fn new_page(&mut self) -> Result<(PageId, Page), BufferPoolError> {
+    /// Creates a new page in the buffer pool. If necessary, evicts an existing page.
+    ///
+    /// This method allocates a new frame from the free list or evicts a page using the
+    /// replacement policy if the free list is empty. It then creates a new page with
+    /// default data and increments its pin count.
+    ///
+    /// # Returns
+    ///
+    /// Returns a tuple containing the [`PageId`] of the new page and the [`Page`] itself,
+    /// or an error if the buffer pool is full and no page can be evicted.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let (page_id, page) = buffer_pool_manager.new_page().await.expect("Failed to create new page");
+    /// ```
+    pub async fn new_page(&mut self) -> Result<(PageId, Page)> {
         eprintln!("Attempting to create new page");
         let page_id = *self.next_page_id;
+        let frame_id = self.allocate_frame().await?;
 
-        let frame_id = match self.free_list.pop() {
-            Some(id) => {
-                eprintln!("Found free frame {:?}", id);
-                eprintln!("Updated free list: {:?}", self.free_list);
-                id
-            }
-            None => {
-                eprintln!("Free list is empty, attempting to evict a page");
-                self.evict_page().await?
-            }
-        };
+        let mut page = Page::new(page_id, vec![0; PAGE_SIZE])?;
+        page.increment_pin_count()?;
 
-        let mut page = Page::new(page_id, vec![0; PAGE_SIZE]).map_err(|e| {
-            error!("Failed to create new page: {}", e);
-            BufferPoolError::PageNotFound
-        })?;
-        page.increment_pin_count().map_err(|e| {
-            error!("Failed to increment pin count for new page: {}", e);
-            BufferPoolError::PageNotFound
-        })?; // Increment pin count for new page
-
-        self.page_table.insert(page_id, frame_id);
-        self.pool.write()[frame_id.0 as usize] = page.clone();
-        self.replacer.record_access(frame_id);
+        self.update_pool_state_on_new_page(page_id, frame_id, page.clone());
         eprintln!("Buffer pool state: {}", self);
-
-        self.next_page_id = Arc::new(PageId::from(page_id.0 + 1));
 
         Ok((page_id, page))
     }
 
+    async fn allocate_frame(&mut self) -> Result<FrameId, BufferPoolError> {
+        if let Some(frame_id) = self.free_list.pop() {
+            // Frame available in the free list
+            Ok(frame_id)
+        } else {
+            // Attempt to evict a page if free list is empty
+            self.evict_page().await
+        }
+    }
+
+    fn update_pool_state_on_new_page(&mut self, page_id: PageId, frame_id: FrameId, page: Page) {
+        self.page_table.insert(page_id, frame_id);
+        let mut pool = self.pool.write();
+        pool[frame_id.0 as usize] = page;
+        self.replacer.record_access(frame_id);
+        self.next_page_id = Arc::new(PageId::from(page_id.0 + 1));
+    }
+
+    /// Evicts a page from the buffer pool based on the replacement policy.
+    ///
+    /// This method is called when the buffer pool needs space for new pages. It uses the `replacer`
+    /// to determine which page to evict. If the selected page is dirty, it writes the page to disk
+    /// before eviction. This ensures that no data is lost from memory.
+    ///
+    /// # Errors
+    ///
+    /// Returns `BufferPoolError::PoolFull` if all pages are pinned and cannot be evicted.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// // Assuming `buffer_pool_manager` is an instance of `BufferPoolManager`
+    /// let frame_id = buffer_pool_manager.evict_page().await.expect("Failed to evict page");
+    /// ```
     async fn evict_page(&mut self) -> Result<FrameId, BufferPoolError> {
         eprintln!("Attempting to evict a page");
         if let Some(frame_id) = self.replacer.evict() {
-            // let evicted_page = &mut self.pool[frame_id.0 as usize];
-            let evicted_page = &mut self.pool.write()[frame_id.0 as usize];
-            eprintln!("Evicting page: {:?}", evicted_page.id());
-
-            // If the evicted page is dirty, write it to disk
+            let evicted_page = self.pool.write()[frame_id.0 as usize].clone();
             if evicted_page.is_dirty() {
-                let page_id = evicted_page.id();
-                let data = evicted_page.data().to_vec();
-                eprintln!("Evicted page is dirty, writing to disk: {:?}", page_id);
-
-                self.disk_scheduler
-                    .schedule_write(page_id, data, WriteStrategy::Immediate)
-                    .await
-                    .map_err(|e| {
-                        error!("Failed to write page to disk: {}", e);
-                        BufferPoolError::DiskWriteFailed
-                    })?;
+                self.write_page_to_disk(&evicted_page).await?;
             }
 
-            // Remove the evicted page from the page table
             self.page_table.remove(&evicted_page.id());
-
-            // Add the frame to the free list for reuse
             self.free_list.push(frame_id);
-
-            eprintln!("Evicted page removed from page table and added to free list");
-            eprintln!("Free list: {:?}", self.free_list);
-
             Ok(frame_id)
         } else {
             // No page could be evicted (possibly all pages are pinned)
@@ -165,67 +312,81 @@ impl BufferPoolManager {
         }
     }
 
-    #[instrument(skip(self))]
+    async fn write_page_to_disk(&self, page: &Page) -> Result<(), BufferPoolError> {
+        let data = page.data().to_vec();
+        self.disk_scheduler
+            .schedule_write(page.id(), data, WriteStrategy::Immediate)
+            .await
+            .map_err(|_| BufferPoolError::DiskWriteFailed)
+    }
+
+    fn increment_pin_and_return_page(&mut self, frame_id: FrameId) -> Result<Page> {
+        let mut pool = self.pool.write();
+        let page = &mut pool[frame_id.0 as usize];
+        page.increment_pin_count()?;
+        self.replacer.record_access(frame_id);
+        Ok(page.clone())
+    }
+
+    async fn load_page_from_disk(&mut self, page_id: PageId) -> Result<Option<Page>> {
+        if self.replacer.size() == BUFFER_POOL_SIZE {
+            warn!("All pages are pinned, unable to fetch new page.");
+            return Ok(None);
+        }
+
+        match self.disk_scheduler.schedule_read(page_id.0).await {
+            Ok(data) => self.allocate_and_load_page(page_id, data).await,
+            Err(e) => {
+                error!("Failed to load page {} from disk: {}", page_id, e);
+                Ok(None)
+            }
+        }
+    }
+
+    async fn allocate_and_load_page(
+        &mut self,
+        page_id: PageId,
+        data: Vec<u8>,
+    ) -> Result<Option<Page>> {
+        let frame_id = self.allocate_frame().await?;
+        let mut new_page = Page::new(page_id, data)
+            .map_err(|e| BufferPoolError::DataAccessError(e.to_string()))?;
+
+        new_page.increment_pin_count()?;
+        self.update_pool_state_on_new_page(page_id, frame_id, new_page.clone());
+        Ok(Some(new_page))
+    }
+
+    /// Fetches a page with the specified `page_id` from the buffer pool. If the page is not already resident
+    /// within DRAM and in the buffer pool, it is consequently loaded from disk, which might involve evicting
+    /// another page if the buffer pool is full.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Option<Page>` which is `Some(Page)` if the page is successfully fetched or loaded, or `None` if
+    /// the page cannot be fetched because the buffer pool is full and all pages are pinned.
+    ///
+    /// # Errors
+    ///
+    /// Returns `BufferPoolError` in case of failures in reading from disk or internal buffer pool errors.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// // Assuming `buffer_pool_manager` is an instance of `BufferPoolManager`
+    /// let maybe_page = buffer_pool_manager.fetch_page(page_id).await.expect("Failed to fetch page");
+    /// ```
+    #[instrument(skip(self), level = "info")]
     pub async fn fetch_page(&mut self, page_id: PageId) -> Result<Option<Page>> {
-        let frame_id_option = self
+        if let Some(frame_id) = self
             .page_table
             .get(&page_id)
-            .map(|frame_ref| *frame_ref.value());
-
-        eprintln!("Replacer size: {}", self.replacer.size());
-
-        if let Some(frame_id) = frame_id_option {
-            info!("Page {} found in buffer pool", page_id);
-            let page = &mut self.pool.write()[frame_id.0 as usize];
-            page.increment_pin_count().map_err(|e| {
-                error!("Failed to increment pin count for page: {}", e);
-                BufferPoolError::DataAccessError(format!("{}", e))
-            })?;
-            self.replacer.record_access(frame_id);
-            Ok(Some(page.clone()))
+            .map(|frame_ref| *frame_ref.value())
+        {
+            let page = self.increment_pin_and_return_page(frame_id)?;
+            Ok(Some(page))
         } else {
-            info!(
-                "Page {} not found in buffer pool, loading from disk",
-                page_id
-            );
-
-            // If all pages are pinned, we can't fetch a new page
-            if self.replacer.size() == BUFFER_POOL_SIZE {
-                error!("Failed to fetch page {}: All pages are pinned", page_id);
-                return Ok(None);
-            }
-
-            match self.disk_scheduler.schedule_read(page_id.0).await {
-                Ok(data) => {
-                    let mut new_page = Page::new(page_id, data).map_err(|e| {
-                        error!("Failed to create new page: {}", e);
-                        BufferPoolError::DiskWriteFailed
-                    })?;
-                    new_page.increment_pin_count().map_err(|e| {
-                        error!("Failed to increment pin count for new page: {}", e);
-                        BufferPoolError::DiskWriteFailed
-                    })?;
-
-                    let frame_id = match self.free_list.pop() {
-                        Some(id) => id,
-                        None => {
-                            info!("Buffer pool is full, attempting to evict a page");
-                            self.evict_page().await?
-                        }
-                    };
-
-                    // Update the buffer pool
-                    self.pool.write()[frame_id.0 as usize] = new_page.clone();
-                    self.page_table.insert(page_id, frame_id);
-                    self.replacer.record_access(frame_id);
-
-                    Ok(Some(new_page))
-                }
-                Err(e) => {
-                    error!("Failed to load page {} from disk: {}", page_id, e);
-                    Ok(None)
-                }
-            }
+            self.load_page_from_disk(page_id).await
         }
     }
 
@@ -243,7 +404,6 @@ impl BufferPoolManager {
             return Err(BufferPoolError::PageNotFound.into());
         };
 
-        // let page = &mut self.pool[frame_id.0 as usize];
         let page = &mut self.pool.write()[frame_id.0 as usize];
         page.set_dirty(is_dirty);
         page.decrement_pin_count();
@@ -258,39 +418,33 @@ impl BufferPoolManager {
         Ok(())
     }
 
-    #[instrument(skip(self))]
+    #[instrument(skip(self), level = "debug")]
     pub async fn flush_page(&self, page_id: PageId) -> Result<(), BufferPoolError> {
-        if let Some(frame_id) = self.page_table.get(&page_id) {
-            // let page = &self.pool[frame_id.value().0 as usize];
-            let page = &self.pool.read()[frame_id.value().0 as usize];
-            if page.is_dirty() {
-                let data = page.data().to_vec();
-                self.disk_scheduler
-                    .schedule_write(page_id, data, WriteStrategy::Immediate)
-                    .await
-                    .map_err(|_| BufferPoolError::DiskWriteFailed)?;
-                info!("Flushed page {} to disk", page_id);
-            }
-            Ok(())
-        } else {
-            error!("Failed to flush page {}: not found in buffer pool", page_id);
-            Err(BufferPoolError::PageNotFound.into())
+        let frame_id = self
+            .find_frame(page_id)
+            .ok_or(BufferPoolError::PageNotFound)?;
+
+        let page = self.pool.read()[frame_id.0 as usize].clone();
+        if page.is_dirty() {
+            self.write_page_to_disk(&page).await?;
+            info!("Flushed page {} to disk", page_id);
         }
+
+        Ok(())
     }
 
-    pub async fn delete_page(&mut self, page_id: PageId) -> Result<()> {
-        let frame_id = if let Some(frame_id) = self.page_table.get(&page_id) {
-            frame_id.value().clone()
-        } else {
-            error!(
-                "Failed to delete page {}: not found in buffer pool",
-                page_id
-            );
-            return Err(BufferPoolError::PageNotFound.into());
-        };
+    pub fn find_frame(&self, page_id: PageId) -> Option<FrameId> {
+        self.page_table
+            .get(&page_id)
+            .map(|frame_ref| *frame_ref.value())
+    }
 
-        // Optionally flush the page if it's dirty before deleting
-        // if self.pool[frame_id.0 as usize].is_dirty() {
+    #[instrument(skip(self), level = "debug")]
+    pub async fn delete_page(&mut self, page_id: PageId) -> Result<()> {
+        let frame_id = self
+            .find_frame(page_id)
+            .ok_or(BufferPoolError::PageNotFound)?;
+
         if self.pool.read()[frame_id.0 as usize].is_dirty() {
             self.flush_page(page_id).await?;
         }
@@ -300,11 +454,28 @@ impl BufferPoolManager {
         Ok(())
     }
 
-    #[instrument(skip(self))]
-    pub async fn flush_all_pages(&self) -> Result<()> {
-        for page_id in self.page_table.iter().map(|entry| *entry.key()) {
-            self.flush_page(page_id).await?;
+    #[instrument(skip(self), level = "info")]
+    pub async fn flush_all_pages(&self) -> Result<(), BufferPoolError> {
+        trace!("Flushing all pages");
+        let pool = self.pool.read();
+        let dirty_pages: Vec<_> = pool.iter().filter(|page| page.is_dirty()).collect();
+
+        if dirty_pages.is_empty() {
+            trace!("No dirty pages to flush");
+            return Ok(());
         }
+
+        let batch: Vec<_> = dirty_pages
+            .into_iter()
+            .map(|page| (page.id(), page.data().to_vec()))
+            .collect();
+
+        self.disk_scheduler.batch_write(batch).await.map_err(|_| {
+            error!("Failed to flush all pages");
+            BufferPoolError::DiskWriteFailed
+        })?;
+
+        trace!("All dirty pages flushed");
         Ok(())
     }
 
@@ -321,7 +492,6 @@ impl BufferPoolManager {
     #[instrument(skip(self))]
     pub async fn write_data(&mut self, page_id: PageId, data: &[u8]) -> Result<()> {
         if let Some(frame_id) = self.page_table.get(&page_id) {
-            // let page = &mut self.pool[frame_id.value().0 as usize];
             let page = &mut self.pool.write()[frame_id.value().0 as usize];
             page.write_data(data);
             page.set_dirty(true);
@@ -338,7 +508,6 @@ impl BufferPoolManager {
     #[instrument(skip(self))]
     pub async fn read_data(&mut self, page_id: PageId) -> Result<Vec<u8>> {
         if let Some(frame_id) = self.page_table.get(&page_id) {
-            // let page = &self.pool[frame_id.value().0 as usize];
             let page = &mut self.pool.write()[frame_id.value().0 as usize];
             let data = page.read_data();
             Ok(data)
@@ -371,9 +540,34 @@ impl fmt::Display for BufferPoolManager {
 
 #[cfg(test)]
 mod buffer_pool_manager_tests {
-    use std::f32::consts::E;
-
     use super::*;
+    use anyhow::Error;
+
+    #[tokio::test]
+    async fn test_fetch_page() {
+        // Setup
+        let (dm, _temp_dir) = setup_dm();
+        let mut bpm = BufferPoolManager::new(ReplacementPolicy::LRU, dm);
+
+        // Create a new page
+        let (page_id, page) = bpm.new_page().await.unwrap();
+
+        assert_eq!(page_id, PageId::from(0));
+        assert_eq!(page.data().to_vec(), vec![0; PAGE_SIZE]);
+        assert_eq!(page.pin_count(), 1);
+
+        // Fetch the page
+        let fetched_page = bpm
+            .fetch_page(page_id)
+            .await
+            .expect("Failed to fetch page")
+            .expect("Page not found");
+
+        assert_eq!(fetched_page.id(), page_id);
+        assert_eq!(fetched_page.data(), page.data());
+        assert_eq!(fetched_page.pin_count(), 2); // 1 from new_page() and 1 from fetch_page()
+        assert!(!fetched_page.is_dirty());
+    }
 
     #[tokio::test]
     async fn test_fetch_and_flush_page() {
@@ -389,10 +583,17 @@ mod buffer_pool_manager_tests {
 
         // Now, creating new pages should fail as the buffer pool is full
         for _ in 0..BUFFER_POOL_SIZE {
-            assert!(matches!(
-                bpm.new_page().await.unwrap_err(),
-                BufferPoolError::PoolFull
-            ));
+            let result = bpm.new_page().await;
+            match result {
+                Err(err) => {
+                    if let Some(BufferPoolError::PoolFull) = err.downcast_ref::<BufferPoolError>() {
+                        // Correctly matched PoolFull error
+                    } else {
+                        panic!("Expected BufferPoolError::PoolFull, found {:?}", err);
+                    }
+                }
+                _ => panic!("Expected an error, but got {:?}", result),
+            }
         }
 
         // Unpinning pages {0, 1, 2, 3, 4}
@@ -441,8 +642,8 @@ mod buffer_pool_manager_tests {
     #[tokio::test]
     async fn test_sample() {
         let (dm, _temp_dir) = setup_dm();
-        let buffer_pool_size = 10usize;
         let mut bpm = BufferPoolManager::new(ReplacementPolicy::LRU, dm);
+        let buffer_pool_size = 10usize;
 
         // Scenario: The buffer pool is empty. We should be able to create a new page.
         eprintln!(
@@ -486,10 +687,17 @@ mod buffer_pool_manager_tests {
         // pool is full, we get a BufferPoolError::PoolFull error, but we're updating
         // the state of the lrureplacer, which is incorrect.
         for _ in 0..buffer_pool_size {
-            assert!(matches!(
-                bpm.new_page().await,
-                Err(BufferPoolError::PoolFull)
-            ));
+            let result = bpm.new_page().await;
+            match result {
+                Err(err) => {
+                    if let Some(BufferPoolError::PoolFull) = err.downcast_ref::<BufferPoolError>() {
+                        // Correctly matched PoolFull error
+                    } else {
+                        panic!("Expected BufferPoolError::PoolFull, found {:?}", err);
+                    }
+                }
+                _ => panic!("Expected an error, but got {:?}", result),
+            }
         }
 
         // Scenario: After unpinning pages {0, 1, 2, 3, 4} and pinning another 4 new pages,
@@ -519,4 +727,56 @@ mod buffer_pool_manager_tests {
         assert!(bpm.new_page().await.is_ok());
         // assert!(bpm.fetch_page(PageId::from(0)).await.is_err()); // TODO: Fix this (currently fails)
     }
+}
+
+#[cfg(test)]
+mod batch_write_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_flush_all_pages_empty_pool() {
+        let bpm = setup_bpm();
+        assert!(bpm.flush_all_pages().await.is_ok());
+
+        // TODO: Add support for logging operations w/ log manager
+        // Verify that no write operations were logged
+        // let log = bpm.disk_scheduler.write_log.read().await;
+        // assert!(log.is_empty());
+    }
+
+    #[tokio::test]
+    #[ignore = "Not yet implemented"]
+    async fn test_flush_all_pages_with_dirty_pages() {
+        let bpm = setup_bpm();
+        // Simulate dirty pages
+        // ...
+
+        // assert!(bpm.flush_all_pages().await.is_ok());
+        // // Verify that correct write operations were logged
+        // let log = bpm.disk_scheduler.write_log.lock().await;
+        // assert_eq!(log.len() /* expected number of writes */,);
+        // // Additional assertions to verify the content of writes
+    }
+}
+
+#[cfg(test)]
+mod buffer_pool_partitioning_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_page_marking_hot_and_cold() {
+        let bpm = setup_bpm();
+
+        // Mark certain pages as hot and others as cold
+        // ...
+
+        // Verify correct partitioning
+        // assert!(bpm.hot_pages.read().await.contains(&/* some page id */));
+        // assert!(bpm.cold_pages.read().await.contains(&/* some page id */));
+    }
+}
+
+pub fn setup_bpm() -> BufferPoolManager {
+    let (dm, _temp_dir) = setup_dm();
+    BufferPoolManager::new(ReplacementPolicy::LRU, dm)
 }

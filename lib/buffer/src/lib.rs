@@ -1,5 +1,5 @@
 #![allow(dead_code)]
 
 mod alloc;
-mod manager;
-mod replacer;
+pub mod manager;
+pub mod replacer;
