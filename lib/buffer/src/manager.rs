@@ -22,6 +22,8 @@ pub enum BufferPoolError {
     PageNotFound,
     #[error("Write to disk failed")]
     DiskWriteFailed,
+    #[error("Data access error: {0}")]
+    DataAccessError(String),
     // ...
 }
 
@@ -105,11 +107,16 @@ impl BufferPoolManager {
             }
         };
 
-        let mut page = Page::new(page_id, vec![0; PAGE_SIZE]);
-        page.increment_pin_count(); // Increment pin count for new page
+        let mut page = Page::new(page_id, vec![0; PAGE_SIZE]).map_err(|e| {
+            error!("Failed to create new page: {}", e);
+            BufferPoolError::PageNotFound
+        })?;
+        page.increment_pin_count().map_err(|e| {
+            error!("Failed to increment pin count for new page: {}", e);
+            BufferPoolError::PageNotFound
+        })?; // Increment pin count for new page
 
         self.page_table.insert(page_id, frame_id);
-        // self.pool[frame_id.0 as usize] = page.clone();
         self.pool.write()[frame_id.0 as usize] = page.clone();
         self.replacer.record_access(frame_id);
         eprintln!("Buffer pool state: {}", self);
@@ -169,9 +176,11 @@ impl BufferPoolManager {
 
         if let Some(frame_id) = frame_id_option {
             info!("Page {} found in buffer pool", page_id);
-            // let page = &mut self.pool[frame_id.value().0 as usize];
             let page = &mut self.pool.write()[frame_id.0 as usize];
-            page.increment_pin_count();
+            page.increment_pin_count().map_err(|e| {
+                error!("Failed to increment pin count for page: {}", e);
+                BufferPoolError::DataAccessError(format!("{}", e))
+            })?;
             self.replacer.record_access(frame_id);
             Ok(Some(page.clone()))
         } else {
@@ -188,8 +197,14 @@ impl BufferPoolManager {
 
             match self.disk_scheduler.schedule_read(page_id.0).await {
                 Ok(data) => {
-                    let mut new_page = Page::new(page_id, data);
-                    new_page.increment_pin_count();
+                    let mut new_page = Page::new(page_id, data).map_err(|e| {
+                        error!("Failed to create new page: {}", e);
+                        BufferPoolError::DiskWriteFailed
+                    })?;
+                    new_page.increment_pin_count().map_err(|e| {
+                        error!("Failed to increment pin count for new page: {}", e);
+                        BufferPoolError::DiskWriteFailed
+                    })?;
 
                     let frame_id = match self.free_list.pop() {
                         Some(id) => id,
@@ -324,8 +339,9 @@ impl BufferPoolManager {
     pub async fn read_data(&mut self, page_id: PageId) -> Result<Vec<u8>> {
         if let Some(frame_id) = self.page_table.get(&page_id) {
             // let page = &self.pool[frame_id.value().0 as usize];
-            let page = &self.pool.read()[frame_id.value().0 as usize];
-            Ok(page.read_data())
+            let page = &mut self.pool.write()[frame_id.value().0 as usize];
+            let data = page.read_data();
+            Ok(data)
         } else {
             error!(
                 "Failed to read data from page {}: not found in buffer pool",
@@ -490,7 +506,7 @@ mod buffer_pool_manager_tests {
         assert!(bpm.fetch_page(PageId::from(0)).await.is_ok());
 
         // Scenario: We should be able to fetch the data we wrote a while ago.
-        let fetched_page0 = bpm
+        let mut fetched_page0 = bpm
             .fetch_page(PageId::from(0))
             .await
             .expect("Failed to fetch page")

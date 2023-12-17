@@ -91,6 +91,16 @@ impl fmt::Display for FrameId {
 )]
 pub struct PageId(pub u32);
 
+impl PageId {
+    pub fn new(page_id: u32) -> Self {
+        Self(page_id)
+    }
+
+    pub fn as_usize(&self) -> usize {
+        self.0 as usize
+    }
+}
+
 impl From<i64> for PageId {
     fn from(page_id: i64) -> Self {
         if page_id < 0 {
@@ -132,7 +142,7 @@ impl From<i32> for PageId {
 impl From<usize> for PageId {
     fn from(page_id: usize) -> Self {
         if page_id > u32::MAX as usize {
-            panic!("PageId out of range")
+            panic!("PageId out of valid range. Got {}", page_id)
         }
 
         Self(page_id as u32)
@@ -172,4 +182,9 @@ pub struct PageOffset(usize);
     Deserialize,
     Shrinkwrap,
 )]
-pub struct TransactionId(u32);
+pub struct TxnId(u32);
+
+/// Timestamp of a transaction. Timestamps are used to determine the relative ordering of
+/// transactions and are used to implement concurrency control.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct Timestamp(u64);
