@@ -7,8 +7,6 @@ use std::{
 };
 use tracing::{debug, error, field::debug, info, warn};
 
-type Timestamp = u64;
-
 pub struct LRUKReplacer {
     replacer_size: usize,
     k: usize,
