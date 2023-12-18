@@ -1,3 +1,4 @@
+use crate::replacer::ReplacerStats;
 use common::FrameId;
 use core::fmt;
 use lru::LruCache;
@@ -10,251 +11,9 @@ use std::{
 use tracing::{debug, error, info, warn};
 use typed_builder::TypedBuilder;
 
-/// `ReplacerStats` holds statistical data for cache operations within an LRU Replacer.
+/// # [`LRUReplacer`]
 ///
-/// Tracks various statistics such as cache hits, misses, evictions,
-/// total requests, latency, and current cache size. These statistics are utilized within other
-/// layers of the database to make decisions about how to optimize the cache as well as
-/// for monitoring and debugging purposes.
-#[derive(Debug, TypedBuilder)]
-pub struct ReplacerStats {
-    cache_hits: AtomicUsize,
-    cache_misses: AtomicUsize,
-    cache_evictions: AtomicUsize,
-    total_requests: AtomicUsize,
-    total_latency: Arc<RwLock<Duration>>,
-    current_cache_size: AtomicUsize,
-}
-
-impl ReplacerStats {
-    pub fn new() -> Self {
-        ReplacerStats::builder()
-            .cache_hits(AtomicUsize::new(0))
-            .cache_misses(AtomicUsize::new(0))
-            .cache_evictions(AtomicUsize::new(0))
-            .total_requests(AtomicUsize::new(0))
-            .total_latency(Arc::new(RwLock::new(Duration::new(0, 0))))
-            .current_cache_size(AtomicUsize::new(0))
-            .build()
-    }
-
-    pub fn cache_misses(&self) -> usize {
-        self.cache_misses.load(std::sync::atomic::Ordering::Relaxed)
-    }
-
-    pub fn set_cache_misses(&mut self, cache_misses: usize) {
-        self.cache_misses
-            .store(cache_misses, std::sync::atomic::Ordering::Relaxed);
-    }
-
-    pub fn set_current_cache_size(&mut self, current_cache_size: usize) {
-        self.current_cache_size
-            .store(current_cache_size, std::sync::atomic::Ordering::Relaxed);
-    }
-
-    pub fn cache_hits(&self) -> usize {
-        self.cache_hits.load(std::sync::atomic::Ordering::Relaxed)
-    }
-
-    pub fn total_requests(&self) -> usize {
-        self.total_requests
-            .load(std::sync::atomic::Ordering::Relaxed)
-    }
-
-    pub fn cache_evictions(&self) -> usize {
-        self.cache_evictions
-            .load(std::sync::atomic::Ordering::Relaxed)
-    }
-
-    pub fn cache_hit_rate(&self) -> f64 {
-        if self.cache_hits.load(std::sync::atomic::Ordering::Relaxed)
-            + self.cache_misses.load(std::sync::atomic::Ordering::Relaxed)
-            == 0
-        {
-            0.0
-        } else {
-            self.cache_hits.load(std::sync::atomic::Ordering::Relaxed) as f64
-                / (self.cache_hits.load(std::sync::atomic::Ordering::Relaxed)
-                    + self.cache_misses.load(std::sync::atomic::Ordering::Relaxed))
-                    as f64
-        }
-    }
-
-    pub fn cache_miss_rate(&self) -> f64 {
-        if self.cache_hits.load(std::sync::atomic::Ordering::Relaxed)
-            + self.cache_misses.load(std::sync::atomic::Ordering::Relaxed)
-            == 0
-        {
-            0.0
-        } else {
-            self.cache_misses.load(std::sync::atomic::Ordering::Relaxed) as f64
-                / (self.cache_hits.load(std::sync::atomic::Ordering::Relaxed)
-                    + self.cache_misses.load(std::sync::atomic::Ordering::Relaxed))
-                    as f64
-        }
-    }
-
-    pub fn cache_eviction_rate(&self) -> f64 {
-        if self.cache_hits.load(std::sync::atomic::Ordering::Relaxed)
-            + self.cache_misses.load(std::sync::atomic::Ordering::Relaxed)
-            == 0
-        {
-            0.0
-        } else {
-            self.cache_evictions
-                .load(std::sync::atomic::Ordering::Relaxed) as f64
-                / (self.cache_hits.load(std::sync::atomic::Ordering::Relaxed)
-                    + self.cache_misses.load(std::sync::atomic::Ordering::Relaxed))
-                    as f64
-        }
-    }
-
-    pub fn update(&mut self, other: &ReplacerStats) {
-        self.cache_hits.fetch_add(
-            other.cache_hits.load(std::sync::atomic::Ordering::Relaxed),
-            std::sync::atomic::Ordering::Relaxed,
-        );
-        self.cache_misses.fetch_add(
-            other
-                .cache_misses
-                .load(std::sync::atomic::Ordering::Relaxed),
-            std::sync::atomic::Ordering::Relaxed,
-        );
-        self.cache_evictions.fetch_add(
-            other
-                .cache_evictions
-                .load(std::sync::atomic::Ordering::Relaxed),
-            std::sync::atomic::Ordering::Relaxed,
-        );
-    }
-
-    pub fn reset(&mut self) {
-        self.cache_hits
-            .store(0, std::sync::atomic::Ordering::Relaxed);
-        self.cache_misses
-            .store(0, std::sync::atomic::Ordering::Relaxed);
-        self.cache_evictions
-            .store(0, std::sync::atomic::Ordering::Relaxed);
-    }
-
-    pub fn update_latency(&mut self, latency: Duration) {
-        let mut total_latency = self.total_latency.write();
-        *total_latency += latency;
-    }
-
-    pub fn update_cache_size(&mut self, size: usize) {
-        self.current_cache_size
-            .store(size, std::sync::atomic::Ordering::Relaxed);
-    }
-
-    pub fn update_requests(&mut self, requests: usize) {
-        self.total_requests
-            .fetch_add(requests, std::sync::atomic::Ordering::Relaxed);
-    }
-
-    pub fn update_evictions(&mut self, evictions: usize) {
-        self.cache_evictions
-            .fetch_add(evictions, std::sync::atomic::Ordering::Relaxed);
-    }
-
-    pub fn average_latency(&self) -> f64 {
-        if self
-            .total_requests
-            .load(std::sync::atomic::Ordering::Relaxed)
-            == 0
-        {
-            0.0
-        } else {
-            self.total_latency.read().as_micros() as f64
-                / self
-                    .total_requests
-                    .load(std::sync::atomic::Ordering::Relaxed) as f64
-        }
-    }
-
-    pub fn throughput(&self) -> f64 {
-        // throughput is measured per second
-        if self
-            .total_latency
-            .read()
-            .as_secs_f64()
-            .eq(&std::f64::EPSILON)
-        {
-            0.0
-        } else {
-            self.total_requests
-                .load(std::sync::atomic::Ordering::Relaxed) as f64
-                / self.total_latency.read().as_secs_f64()
-        }
-    }
-
-    pub fn increment_cache_hits(&mut self) {
-        self.cache_hits
-            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    }
-
-    pub fn increment_cache_misses(&mut self) {
-        self.cache_misses
-            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    }
-
-    pub fn increment_cache_evictions(&mut self) {
-        self.cache_evictions
-            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    }
-
-    pub fn increment_requests(&mut self) {
-        self.total_requests
-            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    }
-}
-
-impl Clone for ReplacerStats {
-    fn clone(&self) -> Self {
-        let cache_hits =
-            AtomicUsize::new(self.cache_hits.load(std::sync::atomic::Ordering::Relaxed));
-        let cache_misses =
-            AtomicUsize::new(self.cache_misses.load(std::sync::atomic::Ordering::Relaxed));
-        let cache_evictions = AtomicUsize::new(
-            self.cache_evictions
-                .load(std::sync::atomic::Ordering::Relaxed),
-        );
-        let total_requests = AtomicUsize::new(
-            self.total_requests
-                .load(std::sync::atomic::Ordering::Relaxed),
-        );
-        let total_latency = Arc::new(RwLock::new(self.total_latency.read().clone()));
-        let current_cache_size = AtomicUsize::new(
-            self.current_cache_size
-                .load(std::sync::atomic::Ordering::Relaxed),
-        );
-
-        ReplacerStats::builder()
-            .cache_hits(cache_hits)
-            .cache_misses(cache_misses)
-            .cache_evictions(cache_evictions)
-            .total_requests(total_requests)
-            .total_latency(total_latency)
-            .current_cache_size(current_cache_size)
-            .build()
-    }
-}
-
-impl fmt::Display for ReplacerStats {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "ReplacerStats\n")?;
-        write!(f, "Cache hit rate: {:.2}\n", self.cache_hit_rate())?;
-        write!(f, "Cache miss rate: {:.2}\n", self.cache_miss_rate())?;
-        write!(
-            f,
-            "Cache eviction rate: {:.2}\n",
-            self.cache_eviction_rate()
-        )?;
-        Ok(())
-    }
-}
-
-/// `LRUReplacer` is an implementation of a cache replacement policy based on the
+/// Implementation of a cache replacement policy based on the
 /// Least Recently Used (LRU) strategy.
 ///
 /// Manages cache entries, ensuring that the least recently accessed items
@@ -324,35 +83,6 @@ impl LRUReplacer {
         self.stats.update_latency(start.elapsed());
     }
 
-    pub fn set_evictable(&mut self, frame_id: FrameId, evictable: bool) {
-        let start_time = Instant::now();
-        let mut cache = self.cache.write();
-        if let Some(_) = cache.get(&frame_id) {
-            cache.put(frame_id, evictable); // directly update the evictability status
-            debug!(
-                "Setting evictability of frame {:?} to {}",
-                frame_id, evictable
-            );
-
-            // Update cache hits stats
-            self.stats.increment_cache_hits();
-        } else {
-            tracing::warn!(
-                "Frame {:?} not found in cache when setting evictability",
-                frame_id
-            );
-            cache.put(frame_id, evictable);
-
-            // Update cache misses stats
-            self.stats.increment_cache_misses();
-        }
-
-        // Update requests stats
-        self.stats.increment_requests();
-        self.stats.set_current_cache_size(cache.len());
-        self.stats.update_latency(start_time.elapsed());
-    }
-
     pub fn evict(&mut self) -> Option<FrameId> {
         let start = Instant::now();
         let mut cache = self.cache.write();
@@ -418,6 +148,35 @@ impl LRUReplacer {
         self.stats.update_evictions(evicted_frames.len());
         info!("Bulk evicted {} frames", evicted_frames.len());
         evicted_frames
+    }
+
+    pub fn set_evictable(&mut self, frame_id: FrameId, evictable: bool) {
+        let start_time = Instant::now();
+        let mut cache = self.cache.write();
+        if let Some(_) = cache.get(&frame_id) {
+            cache.put(frame_id, evictable); // directly update the evictability status
+            debug!(
+                "Setting evictability of frame {:?} to {}",
+                frame_id, evictable
+            );
+
+            // Update cache hits stats
+            self.stats.increment_cache_hits();
+        } else {
+            tracing::warn!(
+                "Frame {:?} not found in cache when setting evictability",
+                frame_id
+            );
+            cache.put(frame_id, evictable);
+
+            // Update cache misses stats
+            self.stats.increment_cache_misses();
+        }
+
+        // Update requests stats
+        self.stats.increment_requests();
+        self.stats.set_current_cache_size(cache.len());
+        self.stats.update_latency(start_time.elapsed());
     }
 
     pub fn get_statistics(&self) -> ReplacerStats {
