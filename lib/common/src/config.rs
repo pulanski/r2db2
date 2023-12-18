@@ -36,6 +36,16 @@ pub const MAX_TRANSACTIONS: usize = 10;
 )]
 pub struct FrameId(pub u32);
 
+impl FrameId {
+    pub fn new(frame_id: u32) -> Self {
+        Self(frame_id)
+    }
+
+    pub fn as_usize(&self) -> usize {
+        self.0 as usize
+    }
+}
+
 impl From<FrameId> for u32 {
     fn from(frame_id: FrameId) -> Self {
         frame_id.0
