@@ -6,13 +6,14 @@ use std::{
 
 use common::FrameId;
 
-mod lru;
-// mod mru;
 mod lfu;
+mod lru;
 mod lru_k;
+mod mru;
 
 pub use lfu::LFUReplacer;
 pub use lru::LRUReplacer;
+pub use mru::MRUReplacer;
 use parking_lot::RwLock;
 use typed_builder::TypedBuilder;
 

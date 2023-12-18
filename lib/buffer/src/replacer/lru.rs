@@ -25,7 +25,10 @@ use typed_builder::TypedBuilder;
 /// reduce disk I/O by keeping frequently accessed data in memory.
 ///
 /// # Examples
+///
 /// ```
+/// use buffer::replacer::{LRUReplacer, ReplacerStats};
+///
 /// let lru_replacer = LRUReplacer::new(100); // A replacer with a capacity of 100 frames
 /// ```
 #[derive(Debug, TypedBuilder)]

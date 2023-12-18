@@ -1,3 +1,17 @@
+//! # LFU (Least Frequently Used) Cache Replacer
+//!
+//! [`LFUReplacer`] is an implementation of the cache replacement policy based on
+//! the least frequently used strategy. This strategy evicts the cache entries
+//! that have the lowest frequency of access, making it suitable for scenarios where
+//! infrequently accessed data is less likely to be needed in the future.
+//!
+//! ## Usage
+//!
+//! The LFU Replacer is used in caching systems where it is beneficial to keep
+//! frequently accessed items in the cache longer than those that are seldom accessed.
+//! This could be applied in database buffering, file system caches, or other areas
+//! where caching is utilized.
+
 use crate::ReplacerStats;
 use common::FrameId;
 use getset::{Getters, Setters};
@@ -57,6 +71,8 @@ impl LFUReplacer {
             .build()
     }
 
+    /// Records access to a cache frame, incrementing its frequency.
+    /// If the frame is new to the cache, it is added.
     pub fn record_access(&mut self, frame_id: FrameId) {
         let mut cache = self.cache.write();
         let frequency = cache.entry(frame_id).or_insert(0);
@@ -72,6 +88,8 @@ impl LFUReplacer {
         debug!(frame_id = ?frame_id, frequency = *frequency, "Recorded access in LFU Replacer");
     }
 
+    /// Evicts the least frequently used frame from the cache.
+    /// Returns `Some(frame_id)` if a frame is evicted, or `None` if no frame can be evicted.
     pub fn evict(&mut self) -> Option<FrameId> {
         while let Some(Reverse(entry)) = self.priority_queue.pop() {
             let mut cache = self.cache.write();

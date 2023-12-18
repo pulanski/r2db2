@@ -40,7 +40,7 @@ pub struct SqlArgs {
 #[derive(Debug, Args, Getters)]
 pub struct ServeArgs {
     /// Port to host the server on
-    #[arg(short, long, default_value_t = 5432)]
+    #[arg(short, long, default_value_t = 2345)]
     #[getset(get = "pub")]
     port: u16,
     /// Optional: specify a database file to load
