@@ -1,7 +1,7 @@
 use clap::{command, Args, Parser, Subcommand, ValueEnum};
-use getset::{Getters, MutGetters};
+use core::fmt;
+use getset::Getters;
 use std::path::PathBuf;
-use tracing::{info, Level};
 
 pub mod tui;
 
@@ -19,7 +19,7 @@ pub struct Cli {
 pub enum Commands {
     /// Start an interactive SQL shell or execute SQL commands/scripts
     Sql(SqlArgs),
-    /// Start a TCP server to host a database
+    /// Start a server to host a database instance (TCP or UDP)
     Serve(ServeArgs),
     /// Manage database migrations
     Migrate(MigrateArgs),
@@ -51,6 +51,26 @@ pub struct ServeArgs {
     #[arg(short, long)]
     #[getset(get = "pub")]
     verbose: bool,
+
+    /// Specify the server protocol (TCP or UDP)
+    #[arg(short = 's', long, default_value_t = ServerProtocol::TCP)]
+    #[getset(get = "pub")]
+    protocol: ServerProtocol,
+}
+
+#[derive(ValueEnum, Copy, Clone, Debug, PartialEq, Eq)]
+pub enum ServerProtocol {
+    TCP,
+    UDP,
+}
+
+impl fmt::Display for ServerProtocol {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ServerProtocol::TCP => write!(f, "tcp"),
+            ServerProtocol::UDP => write!(f, "udp"),
+        }
+    }
 }
 
 #[derive(Debug, Args, Getters)]

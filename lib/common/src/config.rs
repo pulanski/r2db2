@@ -25,6 +25,9 @@ pub const BUFFER_POOL_SIZE: usize = 10;
 /// Transactions beyond this limit will be blocked until a transaction completes.
 pub const MAX_TRANSACTIONS: usize = 10;
 
+pub const TCP_PORT: u16 = 2345;
+pub const UDP_PORT: u16 = 2346;
+
 /// Unique identifier for a frame. Frames are identified by a monotonically increasing integer
 /// and are the unit of storage in the buffer pool.
 #[derive(
