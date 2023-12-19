@@ -1,6 +1,7 @@
 use crate::SqlArgs;
 use anyhow::Result;
 use indicatif::ProgressStyle;
+use parser::parse;
 use std::sync::Arc;
 use std::thread::sleep;
 use std::time::Duration;
@@ -10,21 +11,23 @@ use tracing_indicatif::{span_ext::IndicatifSpanExt, IndicatifLayer};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
-#[instrument]
 pub async fn handle_sql_command(args: &SqlArgs) {
     info!(command = ?args.command(), db_path = ?args.db_path(), "Processing SQL command");
 
-    let queries = parse_sql_commands(args.command().clone());
+    let ast = parse("SELECT * FROM ;").unwrap();
+    debug!("AST: {:#?}", ast);
 
-    let mut handles = Vec::new();
-    for query in queries {
-        let query_handle = task::spawn(process_query(query));
-        handles.push(query_handle);
-    }
+    // let queries = parse_sql_commands(args.command().clone());
 
-    for handle in handles {
-        handle.await.unwrap();
-    }
+    // let mut handles = Vec::new();
+    // for query in queries {
+    //     let query_handle = task::spawn(process_query(query));
+    //     handles.push(query_handle);
+    // }
+
+    // for handle in handles {
+    //     handle.await.unwrap();
+    // }
 
     info!("SQL command processing completed");
 }

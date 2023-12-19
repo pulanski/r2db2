@@ -1,7 +1,7 @@
 use clap::{command, Args, Parser, Subcommand, ValueEnum};
-use getset::{Getters, MutGetters};
+use core::fmt;
+use getset::Getters;
 use std::path::PathBuf;
-use tracing::{info, Level};
 
 pub mod tui;
 
@@ -19,8 +19,10 @@ pub struct Cli {
 pub enum Commands {
     /// Start an interactive SQL shell or execute SQL commands/scripts
     Sql(SqlArgs),
-    /// Start a TCP server to host a database
+    /// Start a server to host a database instance (TCP or UDP)
     Serve(ServeArgs),
+    /// Start a client to connect to a database instance (TCP or UDP)
+    Client(ClientArgs),
     /// Manage database migrations
     Migrate(MigrateArgs),
     // Additional commands can be added here
@@ -40,13 +42,48 @@ pub struct SqlArgs {
 #[derive(Debug, Args, Getters)]
 pub struct ServeArgs {
     /// Port to host the server on
-    #[arg(short, long, default_value_t = 5432)]
+    #[arg(short, long, default_value_t = 2345)]
     #[getset(get = "pub")]
     port: u16,
     /// Optional: specify a database file to load
     #[arg(short, long)]
     #[getset(get = "pub")]
     db_file: Option<PathBuf>,
+    /// Run in verbose mode
+    #[arg(short, long)]
+    #[getset(get = "pub")]
+    verbose: bool,
+    /// Specify the network protocol (TCP or UDP) for database connections
+    #[arg(short = 's', long, default_value_t = NetworkProtocol::TCP)]
+    #[getset(get = "pub")]
+    protocol: NetworkProtocol,
+}
+
+#[derive(ValueEnum, Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum NetworkProtocol {
+    TCP,
+    UDP,
+}
+
+impl fmt::Display for NetworkProtocol {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            NetworkProtocol::TCP => write!(f, "tcp"),
+            NetworkProtocol::UDP => write!(f, "udp"),
+        }
+    }
+}
+
+#[derive(Debug, Args, Getters)]
+pub struct ClientArgs {
+    /// Hostname or IP address of the server
+    #[arg(short = 'a', long)]
+    #[getset(get = "pub")]
+    host: String,
+    /// Port to connect to
+    #[arg(short, long, default_value_t = 2345)]
+    #[getset(get = "pub")]
+    port: u16,
     /// Run in verbose mode
     #[arg(short, long)]
     #[getset(get = "pub")]

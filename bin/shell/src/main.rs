@@ -1,11 +1,12 @@
-use clap::{Args, Parser, Subcommand, ValueEnum};
-use cli::{tui::handle_sql_command, Cli, Commands, MigrateArgs, ServeArgs, SqlArgs};
+use clap::Parser;
+use cli::{tui::handle_sql_command, Cli, Commands, MigrateArgs};
 use indicatif::ProgressStyle;
-use tracing::{info, Level};
+use network::client::start_client;
+use network::server::start_server;
+use tracing::info;
 use tracing_indicatif::IndicatifLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::FmtSubscriber;
 
 // Function to format elapsed time
 fn elapsed_subsec(state: &indicatif::ProgressState, writer: &mut dyn std::fmt::Write) {
@@ -42,28 +43,21 @@ async fn main() {
             handle_sql_command(args).await;
         }
         Commands::Serve(args) => {
-            info!("Starting TCP server");
-            start_tcp_server(args);
+            start_server(args).await;
         }
         Commands::Migrate(args) => {
             info!("Handling database migration");
             handle_migration(args);
-        } // Additional command handling
+        }
+        Commands::Client(args) => {
+            info!("Starting client");
+            start_client(args).await;
+        }
     }
 }
 
-fn start_tcp_server(args: &ServeArgs) {
-    // Tracing within TCP server setup
-    info!(port = args.port(), db_file = ?args.db_file(), verbose = args.verbose(), "Starting TCP server");
-    // Implement TCP server startup logic
-    // ...
-}
-
 fn handle_migration(args: &MigrateArgs) {
-    // Tracing within migration handling
     info!(migrations_dir = ?args.migrations_dir(), action = ?args.action(), "Processing migrations");
     // Implement database migration logic
     // ...
 }
-
-// Additional functions and logic for the DBMS can be implemented here
