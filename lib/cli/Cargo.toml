@@ -6,7 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-parser = { path = "../parser" }
+compile = { path = "../compile" }
+driver = { path = "../driver" }
+catalog = { path = "../catalog" }
 
 clap = { version = "4.4.11", features = ["derive"] }
 getset = "0.1.2"

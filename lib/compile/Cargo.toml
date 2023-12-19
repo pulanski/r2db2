@@ -1,5 +1,5 @@
 [package]
-name = "parser"
+name = "compile"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,3 +7,10 @@ edition = "2021"
 
 [dependencies]
 sqlparser = "0.40.0"
+logos = "0.13.0"
+thiserror = "1.0.51"
+codespan-reporting = "0.11.1"
+anyhow = "1.0.75"
+
+[dev_dependencies]
+pretty_assertions_sorted = "1.2.3"
