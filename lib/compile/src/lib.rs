@@ -1,3 +1,6 @@
+mod diagnostics;
+mod lexer;
+
 pub use sqlparser::ast::*;
 use sqlparser::dialect::PostgreSqlDialect;
 use sqlparser::parser::Parser;

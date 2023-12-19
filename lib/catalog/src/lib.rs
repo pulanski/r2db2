@@ -6,10 +6,10 @@ pub mod schema;
 
 pub use column::*;
 
-#[derive(Debug)]
-pub struct Database {
-    tables: Arc<DashMap<String, Arc<Table>>>,
-}
+// #[derive(Debug)]
+// pub struct Database {
+//     tables: Arc<DashMap<String, Arc<Table>>>,
+// }
 
 #[derive(Debug)]
 pub struct Table {

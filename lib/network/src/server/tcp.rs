@@ -15,10 +15,11 @@ pub struct DbServer {
 
 impl DbServer {
     pub fn new(server_address: String) -> Self {
+        let db_path = "test.db".to_owned();
         DbServer {
             server_address,
             client_connections: Arc::new(DashMap::new()),
-            driver: Driver::new().expect("Failed to create driver"),
+            driver: Driver::new(&db_path).expect("Failed to create driver"),
         }
     }
 
