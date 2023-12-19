@@ -1,23 +1,20 @@
 [package]
-name = "network"
+name = "driver"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cli = { path = "../cli" }
+buffer = { path = "../buffer" }
 common = { path = "../common" }
-driver = { path = "../driver" }
+storage = { path = "../storage" }
+catalog = { path = "../catalog" }
 
-tokio = { version = "1.35.0", features = ["full"] }
-bytes = "1.5.0"
 tracing = "0.1.40"
-get_if_addrs = "0.5.3"
 anyhow = "1.0.75"
 thiserror = "1.0.51"
+dashmap = "5.5.3"
+tokio = { version = "1.11.0", features = ["full"] }
 getset = "0.1.2"
 typed-builder = "0.18.0"
-serde = { version = "1.0.193", features = ["derive"] }
-serde_json = "1.0.108"
-dashmap = "5.5.3"

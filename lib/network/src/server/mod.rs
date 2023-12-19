@@ -4,9 +4,8 @@ pub mod udp;
 use cli::{NetworkProtocol, ServeArgs};
 use common::{TCP_PORT, UDP_PORT};
 use get_if_addrs::get_if_addrs;
-use tracing::info;
+use tracing::{info, warn};
 
-pub use tcp::run_tcp_server;
 pub use udp::run_udp_server;
 
 pub async fn start_server(args: &ServeArgs) {
@@ -20,10 +19,12 @@ pub async fn start_server(args: &ServeArgs) {
     info!(public_ip = ?public_ip, "Listening at IP address");
 
     if protocol == NetworkProtocol::TCP {
-        run_tcp_server(&tcp_addr)
+        tcp::DbServer::new(public_ip)
+            .run(&tcp_addr)
             .await
             .expect("TCP server failed to run");
     } else if protocol == NetworkProtocol::UDP {
+        warn!("UDP server not implemented yet");
         run_udp_server(&udp_addr)
             .await
             .expect("UDP server failed to run");

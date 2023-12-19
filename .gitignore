@@ -16,3 +16,6 @@ Cargo.lock
 # Debug databases
 *.db
 *.db.log
+
+# osx
+.DS_Store
