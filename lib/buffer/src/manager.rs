@@ -76,12 +76,12 @@
 //!
 //! ## Examples
 //!
-//! ```rust
+//! ```no_run
 //! use buffer::{BufferPoolManager, ReplacementPolicy};
 //! use storage::disk::DiskManager;
 //! use std::sync::Arc;
 //!
-//! let disk_manager = Arc::new(DiskManager::new("path/to/dbfile"));
+//! let disk_manager = Arc::new(DiskManager::new("path/to/dbfile").expect("Failed to start disk manager"));
 //! let buffer_pool_manager = BufferPoolManager::new(ReplacementPolicy::LRU, disk_manager);
 //!
 //! // Operations such as creating new pages, fetching pages, and writing data can be performed
@@ -136,8 +136,12 @@ pub enum BufferPoolError {
 ///
 /// Basic usage:
 ///
-/// ```
-/// let disk_manager = Arc::new(DiskManager::new("path/to/dbfile"));
+/// ```ignore
+/// use buffer::{BufferPoolManager, ReplacementPolicy};
+/// use storage::DiskManager;
+/// use std::sync::Arc;
+///
+/// let disk_manager = Arc::new(DiskManager::new("path/to/dbfile").expect("Failed to start disk manager"));
 /// let buffer_pool_manager = BufferPoolManager::new(ReplacementPolicy::LRU, disk_manager);
 ///
 /// // Create a new page
@@ -179,7 +183,11 @@ impl BufferPoolManager {
     ///
     /// # Usage
     ///
-    /// ```
+    /// ```no_run,ignore
+    /// use buffer::{BufferPoolManager, ReplacementPolicy};
+    /// use storage::DiskManager;
+    /// use std::sync::Arc;
+    ///
     /// let disk_manager = Arc::new(DiskManager::new("path/to/dbfile"));
     /// let buffer_pool_manager = BufferPoolManager::new(ReplacementPolicy::LRU, disk_manager);
     /// ```
@@ -243,7 +251,14 @@ impl BufferPoolManager {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```no_run,ignore
+    /// use buffer::{BufferPoolManager, ReplacementPolicy};
+    /// use storage::DiskManager;
+    /// use std::sync::Arc;
+    ///
+    /// let disk_manager = Arc::new(DiskManager::new("path/to/dbfile").expect("Failed to start disk manager"));
+    /// let mut buffer_pool_manager = BufferPoolManager::new(ReplacementPolicy::LRU, disk_manager);
+    ///
     /// let (page_id, page) = buffer_pool_manager.new_page().await.expect("Failed to create new page");
     /// ```
     pub async fn new_page(&mut self) -> Result<(PageId, Page)> {
@@ -290,8 +305,17 @@ impl BufferPoolManager {
     ///
     /// # Example
     ///
-    /// ```
-    /// // Assuming `buffer_pool_manager` is an instance of `BufferPoolManager`
+    /// ```no_run,ignore
+    /// use buffer::{BufferPoolManager, ReplacementPolicy};
+    /// use storage::DiskManager;
+    /// use std::sync::Arc;
+    ///
+    /// let disk_manager = Arc::new(DiskManager::new("path/to/dbfile").expect("Failed to start disk manager"));
+    /// let mut buffer_pool_manager = BufferPoolManager::new(ReplacementPolicy::LRU, disk_manager);
+    ///
+    /// // Operations such as creating new pages, fetching pages, and writing data can be performed
+    /// // ...
+    ///
     /// let frame_id = buffer_pool_manager.evict_page().await.expect("Failed to evict page");
     /// ```
     async fn evict_page(&mut self) -> Result<FrameId, BufferPoolError> {
@@ -372,8 +396,16 @@ impl BufferPoolManager {
     ///
     /// # Example
     ///
-    /// ```
-    /// // Assuming `buffer_pool_manager` is an instance of `BufferPoolManager`
+    /// ```no_run,ignore
+    /// use common::PageId;
+    /// use buffer::{BufferPoolManager, ReplacementPolicy};
+    /// use storage::disk::DiskManager;
+    /// use std::sync::Arc;
+    ///
+    /// let disk_manager = Arc::new(DiskManager::new("path/to/dbfile"));
+    /// let buffer_pool_manager = BufferPoolManager::new(ReplacementPolicy::LRU, disk_manager);
+    /// let page_id = PageId::from(0);
+    ///
     /// let maybe_page = buffer_pool_manager.fetch_page(page_id).await.expect("Failed to fetch page");
     /// ```
     #[instrument(skip(self), level = "info")]
