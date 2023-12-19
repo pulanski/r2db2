@@ -8,12 +8,11 @@ use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fmt;
+use std::sync::Arc;
+use std::thread::ThreadId;
 use thiserror::Error;
 use tracing::{error, info};
 use typed_builder::TypedBuilder;
-// use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
-use std::thread::ThreadId;
 
 type TableOid = u32;
 type LogIndex = usize;
