@@ -46,7 +46,6 @@ pub enum SchemaError {
     ColumnTypeMismatch,
     #[error("Column length mismatch")]
     ColumnLengthMismatch,
-    // ...
 }
 
 impl Schema {

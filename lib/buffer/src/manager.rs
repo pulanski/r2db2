@@ -96,7 +96,10 @@
 //! transaction management for ensuring data consistency, and advanced performance tuning options.
 #![allow(dead_code, unused_variables, unused_imports)]
 
-use crate::replacer::{self, ReplacementPolicy};
+use crate::{
+    replacer::{self, ReplacementPolicy},
+    LRUReplacer,
+};
 use anyhow::Result;
 use common::{FrameId, PageId, BUFFER_POOL_SIZE, PAGE_SIZE};
 use dashmap::DashMap;
@@ -109,7 +112,7 @@ use storage::{
     page::Page,
 };
 use thiserror::Error;
-use tracing::{error, info, instrument, trace, warn};
+use tracing::{debug, error, info, instrument, trace, warn};
 use typed_builder::TypedBuilder;
 
 #[derive(Error, Debug)]
@@ -221,6 +224,10 @@ impl BufferPoolManager {
         size: usize,
     ) -> Self {
         let disk_scheduler = DiskScheduler::new(disk_manager);
+        // make sure buffer pool size is a power of 2 for bit masking (at least 1 frame)
+        let size = size.next_power_of_two().max(1).min(BUFFER_POOL_SIZE);
+        debug!("Initializing buffer pool with size {}", size);
+
         let free_list = (0..size).map(FrameId::from).collect::<Vec<FrameId>>();
         let pool = vec![Page::default(); size];
 
@@ -232,7 +239,7 @@ impl BufferPoolManager {
             policy,
             disk_scheduler,
             free_list,
-            replacer: replacer::LRUReplacer::new(size),
+            replacer: LRUReplacer::new(size),
             next_page_id: Arc::new(PageId::from(0)),
             pool: Arc::new(RwLock::new(pool)),
         }

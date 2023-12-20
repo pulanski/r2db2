@@ -10,6 +10,7 @@ cli = { path = "../cli" }
 common = { path = "../common" }
 driver = { path = "../driver" }
 
+
 tokio = { version = "1.35.0", features = ["full"] }
 bytes = "1.5.0"
 tracing = "0.1.40"
@@ -21,3 +22,4 @@ typed-builder = "0.18.0"
 serde = { version = "1.0.193", features = ["derive"] }
 serde_json = "1.0.108"
 dashmap = "5.5.3"
+rustc-hash = "1.1.0"

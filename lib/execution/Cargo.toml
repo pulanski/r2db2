@@ -1,8 +1,19 @@
 [package]
 name = "execution"
 version = "0.1.0"
-edition = "2021"
+edition.workspace = true
+rust-version.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+compile = { path = "../compile" }
+
+datafusion = "34.0.0"
+datafusion-expr = "34.0.0"
+datafusion-sql = "34.0.0"
+datafusion-common = "34.0.0"
+datafusion-execution = "34.0.0"
+datafusion-optimizer = "34.0.0"
+arrow = "49.0.0"
+tracing = "0.1.40"

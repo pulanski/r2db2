@@ -10,6 +10,7 @@ buffer = { path = "../buffer" }
 common = { path = "../common" }
 storage = { path = "../storage" }
 catalog = { path = "../catalog" }
+execution = { path = "../execution" }
 
 tracing = "0.1.40"
 anyhow = "1.0.75"

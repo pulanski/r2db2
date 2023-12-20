@@ -3,7 +3,7 @@ use cli::{tui::handle_sql_command, Cli, Commands, MigrateArgs};
 use indicatif::ProgressStyle;
 use network::client::start_client;
 use network::server::start_server;
-use tracing::info;
+use tracing::{info, trace};
 use tracing_indicatif::IndicatifLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -35,7 +35,7 @@ async fn main() {
         .init();
 
     let args = Cli::parse();
-    info!("r2db2 CLI started");
+    trace!(?args, "Parsed CLI arguments");
 
     match args.command() {
         Commands::Sql(args) => {
