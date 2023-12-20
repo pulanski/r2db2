@@ -227,23 +227,3 @@ impl TableSource for MyTableSource {
         self.schema.clone()
     }
 }
-
-// // DataFusion context
-// let mut ctx = ExecutionContext::new();
-
-// // Convert AST to DataFusion logical plan
-// let logical_plan = ctx.create_logical_plan(&sql)?;
-// debug!("Logical plan: {:?}", logical_plan);
-// let optimized_plan = ctx.optimize(&logical_plan)?;
-// debug!("Optimized logical plan: {:?}", optimized_plan);
-
-// // Create physical plan
-// let physical_plan = ctx.create_physical_plan(&optimized_plan).await?;
-
-// // Execute query
-// let results = ctx.collect(physical_plan).await?;
-
-// // Process results
-// for batch in results {
-//     println!("{:?}", batch);
-// }

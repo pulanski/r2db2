@@ -7,7 +7,9 @@ edition = "2021"
 
 [dependencies]
 cli = { path = "../../lib/cli" }
+common = { path = "../../lib/common" }
 network = { path = "../../lib/network" }
+metrics = { path = "../../lib/metrics" }
 
 clap = { version = "4.4.11", features = ["derive"] }
 tracing-subscriber = "0.3.18"

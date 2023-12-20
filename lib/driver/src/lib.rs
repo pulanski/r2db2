@@ -10,20 +10,6 @@ use storage::disk::DiskManager;
 use tracing::{info, instrument, trace};
 use typed_builder::TypedBuilder;
 
-// #[instrument]
-// async fn process_query(query: String) {
-//     info!("Starting query processing for {}", query);
-
-//     let ast = Arc::new(parse_query(&query).await);
-//     let analyzed_plan = Arc::new(analyze_query(&ast).await);
-//     let optimized_plan = Arc::new(optimize_query(&analyzed_plan).await);
-//     let physical_plan = Arc::new(plan_query(&optimized_plan).await);
-
-//     execute_query(&physical_plan).await;
-
-//     info!("Query processing completed for {}", query);
-// }
-
 #[instrument]
 async fn parse_query(query: &str) -> Ast {
     // Simulate query parsing
@@ -115,12 +101,13 @@ impl Driver {
     pub async fn process_sql_command(&self, command: Option<String>) {
         info!("Processing SQL command");
 
-        // Default to current time
+        // Default to current time query if no command is specified
+        let start = Instant::now();
         let query = command.unwrap_or("SELECT NOW();".to_string());
         process_query(&query)
             .await
             .expect("Failed to process query");
 
-        info!("SQL command processing completed");
+        info!("SQL command processing completed in {:?}", start.elapsed());
     }
 }

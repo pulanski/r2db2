@@ -1,43 +1,44 @@
 use anyhow::Result;
 use clap::Parser;
 use cli::{tui::handle_sql_command, Cli, Commands, MigrateArgs};
-use indicatif::ProgressStyle;
+use common::util::trace::initialize_tracing;
 use network::client::start_client;
 use network::server::start_server;
-use std::process::ExitCode;
+use std::{process::ExitCode, time::Instant};
 use tracing::{info, trace};
-use tracing_indicatif::IndicatifLayer;
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::util::SubscriberInitExt;
-
-// Function to format elapsed time
-fn elapsed_subsec(state: &indicatif::ProgressState, writer: &mut dyn std::fmt::Write) {
-    let seconds = state.elapsed().as_secs();
-    let sub_seconds = (state.elapsed().as_millis() % 1000) / 100;
-    let _ = writer.write_str(&format!("{}.{}s", seconds, sub_seconds));
-}
 
 #[tokio::main]
 async fn main() -> Result<ExitCode> {
+    // TODO: Add profiling to various parts end-user facing subsystems (server, client, shell, etc.)
+    // #[cfg(debug_assertions)] // Only run profiling in debug mode
+    // {
+    //     let mut harness = ProfilingHarness::new(METRICS_SERVER_URL, "shell");
+    //     harness.add_tag("shell", "main");
+    //     let _ = harness
+    //         .async_profile(|| async {
+    //             match async_main().await {
+    //                 Ok(exit_code) => {
+    //                     info!("Exit code: {:?}", exit_code);
+    //                     Ok(())
+    //                 }
+    //                 Err(e) => {
+    //                     error!("Error: {:?}", e);
+    //                     Err(e)
+    //                 }
+    //             }
+    //         })
+    //         .await;
+    // }
+    async_main().await
+}
+
+async fn async_main() -> Result<ExitCode> {
     // Initialize tracing
-    let indicatif_layer = IndicatifLayer::new()
-        .with_progress_style(
-            ProgressStyle::with_template(
-                "{span_child_prefix}{span_fields} -- {span_name} {wide_msg} {elapsed_subsec}",
-            )
-            .unwrap()
-            .with_key("elapsed_subsec", elapsed_subsec),
-        )
-        .with_span_child_prefix_symbol("↳ ")
-        .with_span_child_prefix_indent(" ");
+    initialize_tracing()?;
 
-    tracing_subscriber::registry()
-        .with(tracing_subscriber::fmt::layer())
-        .with(indicatif_layer)
-        .init();
-
+    let start = Instant::now();
     let args = Cli::parse();
-    trace!(?args, "Parsed CLI arguments");
+    trace!(?args, "Parsed CLI arguments in {:?}", start.elapsed());
 
     match args.command() {
         Commands::Sql(args) => {
@@ -62,6 +63,5 @@ async fn main() -> Result<ExitCode> {
 
 fn handle_migration(args: &MigrateArgs) {
     info!(migrations_dir = ?args.migrations_dir(), action = ?args.action(), "Processing migrations");
-    // Implement database migration logic
-    // ...
+    // TODO: Implement migrations
 }
