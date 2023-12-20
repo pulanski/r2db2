@@ -57,6 +57,10 @@ pub struct ServeArgs {
     #[arg(short = 's', long, default_value_t = NetworkProtocol::TCP)]
     #[getset(get = "pub")]
     protocol: NetworkProtocol,
+    /// Enable the metrics server
+    #[arg(short, long, default_value = "false")] // TODO: Change to false once metrics are more stable
+    #[getset(get = "pub")]
+    metrics: bool,
 }
 
 #[derive(ValueEnum, Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
