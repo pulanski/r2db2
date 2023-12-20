@@ -1,4 +1,7 @@
-use crate::protocol::{handler::Protocol, message::Message};
+use crate::protocol::{
+    handler::Protocol,
+    message::{Message, MessageKind},
+};
 use anyhow::{Context, Result};
 use cli::{ClientArgs, NetworkProtocol};
 use getset::{Getters, Setters};
@@ -12,8 +15,11 @@ use typed_builder::TypedBuilder;
 
 #[derive(Error, Debug)]
 pub enum ClientError {
-    #[error("Failed to connect to the server")]
+    #[error("Connection error: {0}")]
     ConnectionError(#[from] std::io::Error),
+
+    #[error("Response error: {0}")]
+    ResponseError(String),
 }
 
 #[derive(Debug, Getters, Setters, TypedBuilder)]
@@ -39,31 +45,76 @@ impl DbClient {
     }
 
     // Connect to the server
-    pub async fn connect(&self) -> Result<TcpStream> {
+    pub async fn connect(&mut self) -> Result<()> {
+        // If we already have a stream, return
+        if self.stream.is_some() {
+            trace!("Already connected to server");
+            return Ok(());
+        }
+
         trace!("Connecting to server at {}", &self.server_address);
-        TcpStream::connect(&self.server_address)
+        // Otherwise, create a new stream
+        let stream = TcpStream::connect(&self.server_address)
             .await
-            .with_context(|| format!("Failed to connect to server at {}", &self.server_address))
+            .context("Failed to connect to server")?;
+
+        // Set the stream
+        self.set_stream(Some(stream));
+
+        Ok(())
     }
 
     // General method to process responses
-    async fn process_response(stream: &mut TcpStream) -> Result<String> {
+    async fn process_response(stream: &mut TcpStream) -> Result<()> {
         if let Some(message) = Protocol::parse_incoming(stream).await? {
-            match message {
-                Message::DataRowMessage { row } => Ok(format!("Data Row: {:?}", row)),
-                Message::CommandCompleteMessage { tag } => {
-                    Ok(format!("Command Completed: {}", tag))
+            match message.kind() {
+                MessageKind::StartupMessage => {
+                    let response = Message::serialize_authentication_ok();
+                    stream
+                        .write_all(&response)
+                        .await
+                        .context("Failed to send authentication response to server")?;
                 }
-                Message::ErrorResponse { error } => Err(anyhow::Error::msg(error)),
-                _ => Err(anyhow::Error::msg("Unexpected response type")),
+                MessageKind::QueryMessage => {
+                    let response = Message::serialize_query_response();
+                    stream
+                        .write_all(&response)
+                        .await
+                        .context("Failed to send query response to server")?;
+                }
+                MessageKind::DataRowMessage => todo!(),
+                MessageKind::CommandCompleteMessage => {
+                    let tag = "PLACEHOLDER";
+                    let response = Message::serialize_command_complete(tag);
+                    stream
+                        .write_all(&response)
+                        .await
+                        .context("Failed to send command complete response to server")?;
+                }
+                MessageKind::TerminationMessage => todo!(),
+                MessageKind::ErrorResponse => todo!(),
+                MessageKind::AuthenticationRequest => todo!(),
+                MessageKind::ReadyForQuery => todo!(),
             }
         } else {
-            Err(anyhow::Error::msg("No response received"))
+            error!("Failed to parse incoming message");
         }
+
+        info!("Received response from server");
+
+        Ok(())
     }
 
-    // Receive a response from the server
-    async fn receive_response(&self, stream: &mut TcpStream) -> Result<String> {
+    async fn receive_and_process_response(stream: &mut TcpStream) -> Result<()> {
+        let response = DbClient::receive_response(stream).await?;
+
+        // TODO: handle reponse: parse it, log it, handle errors, etc.
+        info!("Received response from server: {}", response);
+
+        Ok(())
+    }
+
+    async fn receive_response(stream: &mut TcpStream) -> Result<String> {
         let mut buffer = [0; 1024];
         let n = stream
             .read(&mut buffer)
@@ -74,38 +125,42 @@ impl DbClient {
         Ok(response)
     }
 
-    // Send a startup message to the server
-    pub async fn send_startup_message(&mut self) -> Result<String> {
-        if !self.stream.is_some() {
-            self.stream = Some(self.connect().await?); // Connect if not already connected
-        }
+    // Send a startup message to the server and process the response
+    pub async fn send_startup_message(&mut self) -> Result<()> {
+        self.connect().await?;
 
         let startup_message = Message::serialize_startup_message();
 
-        let mut stream = self.stream.as_mut().unwrap();
-        stream
-            .write_all(&startup_message)
-            .await
-            .context("Failed to send startup message to the server")?;
+        trace!("Sending startup message");
+        if let Some(stream) = &mut self.stream {
+            stream
+                .write_all(&startup_message)
+                .await
+                .context("Failed to send startup message to the server")?;
 
-        let response = DbClient::process_response(&mut stream).await?;
+            DbClient::receive_and_process_response(stream).await?;
+        }
 
-        Ok(response)
+        Ok(())
     }
 
-    // Send a SQL query to the server
-    pub async fn send_sql_query(&self, query: &str) -> Result<String> {
-        let mut stream = self.connect().await?;
+    // Send a SQL query to the server and process the response
+    pub async fn send_sql_query(&mut self, query: &str) -> Result<()> {
+        self.connect().await?;
         let query_message = Message::serialize_query(query);
 
-        stream
-            .write_all(&query_message)
-            .await
-            .context("Failed to send query to the server")?;
+        trace!("Sending query message");
 
-        let response = self.receive_response(&mut stream).await?;
+        if let Some(stream) = &mut self.stream {
+            stream
+                .write_all(&query_message)
+                .await
+                .context("Failed to send query message to the server")?;
 
-        Ok(response)
+            DbClient::receive_and_process_response(stream).await?;
+        }
+
+        Ok(())
     }
 }
 
@@ -116,27 +171,26 @@ pub async fn start_client(args: &ClientArgs) -> Result<()> {
     let mut client = DbClient::new(server_address);
 
     // TODO: Clients should engage in a handshake with the server (e.g. SSL)
-    let res = client.send_startup_message().await?;
-    info!("Received response from server: {}", res);
+    client.send_startup_message().await?;
 
     // Example: sending a SELECT query
     debug!("Sending query to server");
     match client.send_sql_query("SELECT * FROM users;").await {
-        Ok(r) => {
-            info!("Query executed successfully: {:?}", r);
+        Ok(_) => {
+            info!("Query executed successfully");
         }
         Err(e) => error!("Failed to execute query: {:?}", e),
     }
 
     // Example: sending an INSERT query
-    // if let Err(e) = client
-    //     .send_sql_query(
-    //         r#"INSERT INTO users (name, email, age) VALUES ("john doe", "jdoe@cs.edu", 28);"#,
-    //     )
-    //     .await
-    // {
-    //     error!("Failed to send query: {:?}", e);
-    // }
+    if let Err(e) = client
+        .send_sql_query(
+            r#"INSERT INTO users (name, email, age) VALUES ("john doe", "jdoe@cs.edu", 28);"#,
+        )
+        .await
+    {
+        error!("Failed to send query: {:?}", e);
+    }
 
     Ok(())
 }

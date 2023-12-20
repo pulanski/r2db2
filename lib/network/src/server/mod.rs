@@ -1,6 +1,8 @@
 pub mod tcp;
 pub mod udp;
 
+use std::net::SocketAddr;
+
 use cli::{NetworkProtocol, ServeArgs};
 use common::{TCP_PORT, UDP_PORT};
 use get_if_addrs::get_if_addrs;
@@ -12,14 +14,16 @@ pub async fn start_server(args: &ServeArgs) {
     let protocol = args.protocol().clone();
     info!(port = args.port(), db_file = ?args.db_file(), verbose = args.verbose(), protocol = ?protocol, "Starting SQL server");
 
-    let tcp_addr = format!("127.0.0.1:{}", TCP_PORT);
+    let tcp_addr = format!("127.0.0.1:{}", TCP_PORT)
+        .parse::<SocketAddr>()
+        .expect("Failed to parse TCP address");
     let udp_addr = format!("127.0.0.1:{}", UDP_PORT);
 
     let public_ip = get_public_ip().expect("Failed to get public IP address");
     info!(public_ip = ?public_ip, "Listening at IP address");
 
     if protocol == NetworkProtocol::TCP {
-        tcp::DbServer::new(&tcp_addr)
+        tcp::DbServer::new(tcp_addr)
             .run()
             .await
             .expect("TCP server failed to run");
