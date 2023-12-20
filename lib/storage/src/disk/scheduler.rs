@@ -12,7 +12,7 @@ use std::time::{Duration, Instant};
 use thiserror::Error;
 use tokio::sync::{mpsc, oneshot};
 use tokio::task;
-use tracing::{error, info, instrument, trace, warn};
+use tracing::{error, info, instrument, trace, warn, debug};
 
 #[derive(Error, Debug)]
 pub enum DiskSchedulerError {
@@ -146,12 +146,12 @@ impl DiskScheduler {
     /// before the write buffer is flushed to disk.
     const MAX_BUFFER_SIZE: usize = 32;
 
-    #[instrument(name = "Scheduler::new", skip(disk_manager))]
+    #[instrument(skip(disk_manager))]
     pub fn new(disk_manager: Arc<DiskManager>) -> Arc<Self> {
         let (sender, mut receiver) = mpsc::channel::<DiskRequest>(Self::MAX_PENDING_REQUESTS);
         let disk_manager_clone = disk_manager.clone();
 
-        info!("Spawning DiskScheduler worker task");
+        debug!("Spawning DiskScheduler worker task");
 
         tokio::spawn(async move {
             trace!("DiskScheduler worker started");

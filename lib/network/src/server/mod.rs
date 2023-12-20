@@ -19,8 +19,8 @@ pub async fn start_server(args: &ServeArgs) {
     info!(public_ip = ?public_ip, "Listening at IP address");
 
     if protocol == NetworkProtocol::TCP {
-        tcp::DbServer::new(public_ip)
-            .run(&tcp_addr)
+        tcp::DbServer::new(&tcp_addr)
+            .run()
             .await
             .expect("TCP server failed to run");
     } else if protocol == NetworkProtocol::UDP {

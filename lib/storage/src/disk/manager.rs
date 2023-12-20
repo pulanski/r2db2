@@ -59,7 +59,7 @@ impl DiskManager {
     pub fn new(db_file: &str) -> Result<Self> {
         let log_file = format!("{}.log", db_file);
         info!(
-            "[DiskManager::new] Initializing storage manager for {} with log file {}",
+            "Initializing storage manager for `{}` with log file `{}`",
             db_file, log_file
         );
 
@@ -72,12 +72,12 @@ impl DiskManager {
 
         if !std::path::Path::new(db_file).exists() {
             debug!(
-                "[DiskManager::new] Database file {} does not exist. Creating a new database file",
+                "Database file {} does not exist. Creating a new database file",
                 db_file
             );
         } else {
             debug!(
-                "[DiskManager::new] Database file {} exists. Opening the existing database file",
+                "Database file {} exists. Opening the existing database file",
                 db_file
             );
         }

@@ -1,5 +1,5 @@
 use crate::replacer::ReplacerStats;
-use common::FrameId;
+use common::{FrameId, BUFFER_POOL_SIZE};
 use core::fmt;
 use lru::LruCache;
 use parking_lot::RwLock;
@@ -48,11 +48,16 @@ impl Clone for LRUReplacer {
 
 impl LRUReplacer {
     pub fn new(capacity: usize) -> Self {
-        let capacity = NonZeroUsize::new(capacity).unwrap_or({
-            error!("Capacity must be greater than 0");
-            NonZeroUsize::new(1).expect("Capacity must be greater than 0")
+        debug!("Creating a new LRUReplacer with capacity {}", capacity);
+
+        // convert capacity to NonZeroUsize
+        let capacity = NonZeroUsize::new(capacity).unwrap_or_else(|| {
+            error!(
+                "Capacity must be greater than 0, using default capacity of {}",
+                BUFFER_POOL_SIZE
+            );
+            NonZeroUsize::new(BUFFER_POOL_SIZE).unwrap()
         });
-        info!("Creating a new LRUReplacer with capacity {}", capacity);
 
         LRUReplacer::builder()
             .cache(Arc::new(RwLock::new(LruCache::new(capacity))))
