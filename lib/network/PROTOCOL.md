@@ -1,8 +1,11 @@
 # Database Wire Protocol Design
 
+## Table of Contents
+
 <!-- TOC tocDepth:2..3 chapterDepth:2..6 -->
 
 - [Database Wire Protocol Design](#database-wire-protocol-design)
+  - [Table of Contents](#table-of-contents)
   - [Overview](#overview)
     - [Key Features](#key-features)
   - [Protocol Lifecycle](#protocol-lifecycle)
@@ -11,12 +14,9 @@
     - [Connection Termination](#connection-termination)
   - [Message Types](#message-types)
   - [Examples: Protocol in Action](#examples-protocol-in-action)
-    - [Authenticated Connection](#authenticated-connection)
-    - [Query Execution](#query-execution)
-    - [Connection Termination](#connection-termination-1)
-  - [Diagrams for Message Lifecycle](#diagrams-for-message-lifecycle)
     - [Connection Setup with Authentication](#connection-setup-with-authentication)
     - [Query Execution and Response](#query-execution-and-response)
+    - [Connection Termination (Client)](#connection-termination-client)
   - [Message Formats](#message-formats)
     - [Common Structure](#common-structure)
     - [Specific Message Formats](#specific-message-formats)
@@ -39,8 +39,8 @@
     - [Characteristics (Authenticated)](#characteristics-authenticated)
       - [Protocol Flow (Authenticated)](#protocol-flow-authenticated)
   - [Choosing Between the Two Modes](#choosing-between-the-two-modes)
-  - [Authentication Methods](#authentication-methods-1)
-    - [Password-Based Authentication](#password-based-authentication-1)
+  - [Authentication Methods Supported](#authentication-methods-supported)
+    - [Password-Based](#password-based)
       - [Default Credentials](#default-credentials)
     - [Differences from PostgreSQL Wire Protocol](#differences-from-postgresql-wire-protocol)
   - [Future Enhancements](#future-enhancements)
@@ -105,47 +105,6 @@ The protocol operates over a TCP/IP connection and is structured around a reques
 
 ## Examples: Protocol in Action
 
-### Authenticated Connection
-
-```plaintext
-Client                                Server
-  |                                     |
-  |--- SSL Handshake ------------------->|
-  |<-- SSL Handshake Acknowledgment ----|
-  |                                     |
-  |--- StartupMessage (credentials) --->|
-  |<-- AuthenticationRequest ----------|
-  |                                     |
-  |--- Authentication (password) ------>|
-  |<-- ReadyForQuery ------------------|
-  |                                     |
-```
-
-### Query Execution
-
-```
-Client                                Server
-  |                                     |
-  |--- QueryMessage ("SELECT * ...") -->|
-  |                                     |
-  |<-- DataRowMessage (row 1) ---------|
-  |<-- DataRowMessage (row 2) ---------|
-  |                                     |
-  |<-- CommandCompleteMessage ---------|
-  |                                     |
-```
-
-### Connection Termination
-
-```
-Client                                Server
-  |                                     |
-  |--- TerminationMessage ------------->|
-  |                                     |
-```
-
-## Diagrams for Message Lifecycle
-
 ### Connection Setup with Authentication
 
 ```plaintext
@@ -192,6 +151,18 @@ Client                                Server
       |                                                     |
       | (4) CommandCompleteMessage                          |
       |<----------------------------------------------------|
+      |                                                     |
+```
+
+### Connection Termination (Client)
+
+```plaintext
+  +--------+                                           +--------+
+  | Client |                                           | Server |
+  +--------+                                           +--------+
+      |                                                     |
+      | (1) TerminationMessage                              |
+      |---------------------------------------------------->|
       |                                                     |
 ```
 
@@ -374,11 +345,11 @@ Client                                Server
 
 - **Access Control**: If the server needs to restrict access to certain users, authentication is necessary.
 
-## Authentication Methods
+## Authentication Methods Supported
 
 The protocol supports various authentication methods, including password-based, token-based, and certificate-based authentication. The server can support multiple authentication methods, and the client can choose the method to use in the `StartupMessage`.
 
-### Password-Based Authentication
+### Password-Based
 
 In password-based authentication, the client sends a username and password in the `StartupMessage`. The server verifies the credentials and allows the connection if they are valid.
 

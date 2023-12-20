@@ -12,9 +12,9 @@ network = { path = "../../lib/network" }
 clap = { version = "4.4.11", features = ["derive"] }
 tracing-subscriber = "0.3.18"
 tracing = "0.1.40"
-
 tracing-indicatif = "0.3.6"
 indicatif = "0.17"
 futures = "0.3"
 rand = "0.8"
 tokio = { version = "1", features = ["full"] }
+anyhow = "1.0"

@@ -1,8 +1,10 @@
+use anyhow::Result;
 use clap::Parser;
 use cli::{tui::handle_sql_command, Cli, Commands, MigrateArgs};
 use indicatif::ProgressStyle;
 use network::client::start_client;
 use network::server::start_server;
+use std::process::ExitCode;
 use tracing::{info, trace};
 use tracing_indicatif::IndicatifLayer;
 use tracing_subscriber::layer::SubscriberExt;
@@ -16,7 +18,7 @@ fn elapsed_subsec(state: &indicatif::ProgressState, writer: &mut dyn std::fmt::W
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<ExitCode> {
     // Initialize tracing
     let indicatif_layer = IndicatifLayer::new()
         .with_progress_style(
@@ -51,9 +53,11 @@ async fn main() {
         }
         Commands::Client(args) => {
             info!("Starting client");
-            start_client(args).await;
+            start_client(args).await?;
         }
     }
+
+    Ok(ExitCode::SUCCESS)
 }
 
 fn handle_migration(args: &MigrateArgs) {
