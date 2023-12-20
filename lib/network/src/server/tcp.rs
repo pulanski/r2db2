@@ -1,3 +1,5 @@
+use crate::middleware::trace::LoggingMiddleware;
+use crate::middleware::{Middleware, MiddlewareStack, MiddlewareStackRef};
 use crate::protocol::handler::{ConnectionHandler, Protocol};
 use crate::protocol::message::{Message, MessageKind};
 use anyhow::{Context, Result};
@@ -8,12 +10,12 @@ use std::env;
 use std::hash::{Hash, Hasher};
 use std::net::SocketAddr;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::io::{self, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::signal;
 use tokio::sync::mpsc;
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, instrument, trace};
 use typed_builder::TypedBuilder;
 
 pub type ConnectionId = String; // Unique identifier for each connection
@@ -23,30 +25,40 @@ pub struct DbServer {
     server_address: SocketAddr,
     connections: Arc<DashMap<ConnectionId, mpsc::Sender<TcpStream>>>,
     driver: DriverRef,
+    middleware_stack: MiddlewareStackRef,
 }
 
 impl DbServer {
-    pub fn new(server_address: SocketAddr) -> Self {
+    /// Start a new server instance with the given address and
+    /// middleware stack.
+    pub fn new(server_address: SocketAddr, mut middleware_stack: MiddlewareStack) -> Self {
+        // By default, we use the logging middleware
+        middleware_stack.add_middleware(LoggingMiddleware::new());
+
         DbServer::builder()
             .server_address(server_address)
             .connections(Arc::new(DashMap::new()))
             .driver(Arc::new(
                 Driver::new("test.db").expect("Failed to create driver"),
             ))
+            .middleware_stack(Arc::new(middleware_stack))
             .build()
     }
 
-    pub async fn accept_connections(&self, listener: TcpListener) -> io::Result<()> {
+    pub async fn accept_connections(&self, listener: TcpListener) -> Result<()> {
         while let Ok((socket, addr)) = listener.accept().await {
             let connection_id = generate_connection_id(&addr); // Generate a unique ID for the connection
             let (tx, rx) = mpsc::channel(1); // Create a channel for communication with the connection handler
 
-            info!("New connection {}: {}", connection_id, addr);
-
             self.connections.insert(connection_id.clone(), tx);
 
-            let mut connection_handler =
-                ConnectionHandler::new(socket, rx, self.driver.clone(), self.connections.clone());
+            let mut connection_handler = ConnectionHandler::new(
+                socket,
+                rx,
+                self.driver.clone(),
+                self.connections.clone(),
+                self.middleware_stack.clone(),
+            );
 
             tokio::spawn(async move {
                 if let Err(e) = connection_handler.handle_connection().await {

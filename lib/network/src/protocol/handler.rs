@@ -1,6 +1,8 @@
 use super::message::{Message, MessageFormat};
+use crate::middleware::MiddlewareStackRef;
 use crate::protocol::message::MessageKind;
 use crate::server::tcp::{generate_connection_id, ConnectionId};
+use anyhow::{anyhow, Result};
 use bytes::{BufMut, BytesMut};
 use dashmap::DashMap;
 use driver::DriverRef;
@@ -18,6 +20,7 @@ pub struct ConnectionHandler {
     receiver: Receiver<TcpStream>,
     driver: DriverRef,
     connections: Arc<DashMap<ConnectionId, Sender<TcpStream>>>,
+    middleware_stack: MiddlewareStackRef,
 }
 
 impl ConnectionHandler {
@@ -26,22 +29,52 @@ impl ConnectionHandler {
         receiver: Receiver<TcpStream>,
         driver: DriverRef,
         connections: Arc<DashMap<ConnectionId, Sender<TcpStream>>>,
+        middleware_stack: MiddlewareStackRef,
     ) -> Self {
         ConnectionHandler::builder()
             .stream(stream)
             .receiver(receiver)
             .driver(driver)
             .connections(connections)
+            .middleware_stack(middleware_stack)
             .build()
     }
 
-    pub async fn handle_connection(&mut self) -> io::Result<()> {
+    pub async fn handle_connection(&mut self) -> Result<()> {
+        // Invoke middleware's on_connect method
+        if let Err(e) = self.middleware_stack.handle_connect(&self.stream).await {
+            error!("Error in middleware on_connect: {:?}", e);
+            return Err(anyhow!("Error in middleware on_connect"));
+        }
+
         // Main loop for handling client requests
         loop {
             match Protocol::parse_incoming(&mut self.stream).await? {
-                Some(message) => self.process_message(message).await?,
+                Some(message) => {
+                    // Invoke middleware's before_request method
+                    if let Err(e) = self
+                        .middleware_stack
+                        .handle_before_request(&mut self.stream)
+                        .await
+                    {
+                        error!("Error in middleware before_request: {:?}", e);
+                        return Err(anyhow!("Error in handling before_request lifecycle hook within middleware stack."));
+                    }
+
+                    self.process_message(message).await?;
+
+                    // Invoke middleware's after_request method
+                    if let Err(e) = self
+                        .middleware_stack
+                        .handle_after_request(&mut self.stream)
+                        .await
+                    {
+                        error!("Error in middleware after_request: {:?}", e);
+                        return Err(anyhow!("Error in handling after_request lifecycle hook within middleware stack."));
+                    }
+                }
                 None => {
-                    self.handle_disconnect()?;
+                    self.handle_disconnect().await?;
                     break;
                 }
             }
@@ -50,24 +83,34 @@ impl ConnectionHandler {
         Ok(())
     }
 
-    fn handle_disconnect(&mut self) -> Result<(), io::Error> {
+    async fn handle_disconnect(&mut self) -> Result<()> {
         let connection_id = generate_connection_id(&self.stream.peer_addr()?);
         self.connections.remove(&connection_id);
-        info!(
-            "Client {} has closed the connection.",
-            self.stream.peer_addr()?,
-        );
+
+        // Invoke middleware's on_disconnect method
+        if let Err(e) = self.middleware_stack.handle_disconnect(&self.stream).await {
+            error!("Error in middleware on_disconnect: {:?}", e);
+            return Err(anyhow!("Error in middleware on_disconnect"));
+        }
+
         let remaining_connections = self.connections.len();
+        let client = self.stream.peer_addr()?;
 
         Ok(if remaining_connections == 0 {
-            info!("No active connections remaining.");
+            info!(
+                "Client {} has closed the connection. No active connections remaining.",
+                client
+            );
         } else {
-            info!("{} connections remaining.", remaining_connections);
+            info!(
+                "Client {} has closed the connection. {} connections remaining.",
+                remaining_connections, client
+            );
         })
     }
 
     #[tracing::instrument(skip(self, message))]
-    async fn process_message(&mut self, message: Message) -> io::Result<()> {
+    async fn process_message(&mut self, message: Message) -> Result<()> {
         debug!("Processing message: {}", message);
 
         match message.kind() {
@@ -78,7 +121,7 @@ impl ConnectionHandler {
                 self.process_query_message(message).await?;
             }
             MessageKind::TerminationMessage => {
-                self.handle_disconnect()?;
+                self.handle_disconnect().await?;
             }
             _ => {
                 self.handle_unknown_message(message).await?;
