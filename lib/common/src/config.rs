@@ -2,15 +2,17 @@
 
 #![allow(dead_code)]
 
-use config::{Config, ConfigBuilder, ConfigError, Environment, File, FileFormat};
+use config::{ConfigBuilder, Environment, File, FileFormat};
 use getset::{Getters, Setters};
 use serde::{Deserialize, Serialize};
 use shrinkwraprs::Shrinkwrap;
-use std::env;
 use std::{fmt, time::Duration};
 use thiserror::Error;
 use typed_builder::TypedBuilder;
 use url::Url;
+
+pub const METRICS_SERVER_URL: &str = "http://localhost:4040";
+pub const DEFAULT_METRICS_SAMPLE_RATE: u32 = 100;
 
 /// The size of a page in bytes (4 KiB). Pages are a fixed-size block of data and
 /// are the unit of data transfer between disk and memory.

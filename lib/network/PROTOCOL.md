@@ -42,6 +42,13 @@
   - [Authentication Methods Supported](#authentication-methods-supported)
     - [Password-Based](#password-based)
       - [Default Credentials](#default-credentials)
+  - [Compression](#compression)
+    - [Compression Strategy](#compression-strategy)
+      - [Example: Compression Negotiation](#example-compression-negotiation)
+    - [Handling Compression](#handling-compression)
+  - [Monitoring and Diagnostics](#monitoring-and-diagnostics)
+    - [Monitoring Features](#monitoring-features)
+    - [Diagnostic Capabilities](#diagnostic-capabilities)
     - [Differences from PostgreSQL Wire Protocol](#differences-from-postgresql-wire-protocol)
   - [Future Enhancements](#future-enhancements)
   - [References](#references)
@@ -324,7 +331,7 @@ In the authenticated version, the protocol includes steps to verify the identity
 
 #### Protocol Flow (Authenticated)
 
-```
+```plaintext
 Client                                Server
   |                                     |
   |--- StartupMessage (credentials) --->|
@@ -360,6 +367,60 @@ username: test
 password: test
 ```
 
+## Compression
+
+In modern networked applications, data transmission can be a bottleneck, especially when dealing with large datasets. Compression is a technique to reduce the size of the data transmitted over the network, thereby increasing the efficiency and reducing latency.
+
+### Compression Strategy
+
+- **Selective Compression**: Not all data benefits equally from compression (e.g., binary data). The protocol should selectively compress data based on type and size.
+
+- **Compression Algorithms**: Implement widely-used and efficient compression algorithms. Candidates include:
+  - **LZ4**: Fast compression and decompression speeds.
+  - **Snappy**: Optimized for speed and reasonable compression ratios.
+  - **Zstandard**: Offers a balance between speed and compression ratio.
+
+For more information, see [Comparison of Data Compression Algorithms](https://en.wikipedia.org/wiki/Comparison_of_data_compression_algorithms).
+
+In our implementation, we use the [LZ4](https://lz4.github.io/lz4/) compression algorithm for its speed and reasonable compression ratios (see [LZ4 Compression Benchmarks](https://lz4.github.io/lz4/)) at the expense of slightly higher CPU usage.
+
+- **Negotiating Compression**: During the connection setup, the client and server negotiate the use and type of compression. This can be part of the `StartupMessage` and `ReadyForQuery` handshake.
+
+#### Example: Compression Negotiation
+
+```plaintext
+Client                                Server
+  |                                     |
+  |--- StartupMessage (with LZ4) ------>|
+  |                                     |
+  |<-- ReadyForQuery (LZ4 Accepted) ----|
+  |                                     |
+```
+
+### Handling Compression
+
+- **Compression Level**: The protocol should allow specifying the compression level, balancing between compression ratio and performance.
+
+- **On-the-fly Compression/Decompression**: Implement compression/decompression in the protocol stack so that it's transparent to the application layer.
+
+## Monitoring and Diagnostics
+
+Effective monitoring and diagnostics are crucial for maintaining the health and performance of the database system. The protocol should facilitate easy monitoring and offer diagnostic capabilities.
+
+### Monitoring Features
+
+- **Connection Health**: Periodic heartbeats or similar mechanisms to ensure that connections are alive and healthy.
+
+- **Performance Metrics**: Tracking key performance metrics like query response times, number of active connections, and data throughput.
+
+- **Error Tracking**: Detailed error reports for failed queries or protocol violations, aiding in quick resolution of issues.
+
+### Diagnostic Capabilities
+
+- **Logging**: Detailed logging of all protocol interactions, including connection setups, queries, and disconnections.
+- **Trace Mode**: A mode where each step in the query processing and data transmission is logged for deep analysis.
+- **Accessible Metrics**: Metrics accessible through standard APIs or endpoints, allowing for real-time monitoring and alerting.
+
 ### Differences from PostgreSQL Wire Protocol
 
 While inspired by the PostgreSQL wire protocol, this protocol introduces several variations:
@@ -373,8 +434,6 @@ While inspired by the PostgreSQL wire protocol, this protocol introduces several
 4. **Enhanced Error Reportingg and Diagnostics**: More detailed error reporting in the `ErrorResponse` to aid in client-side diagnostics and troubleshooting.
 
 ## Future Enhancements
-
-- **Compression**: Implement data compression in the protocol for more efficient use of bandwidth, especially beneficial for large data transfers.
 
 - **Load Balancing and Failover**: Support for load balancing and automatic failover to enhance availability and performance.
 
