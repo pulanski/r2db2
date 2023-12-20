@@ -1,14 +1,15 @@
-pub mod tcp;
-pub mod udp;
-
-use std::net::SocketAddr;
-
 use cli::{NetworkProtocol, ServeArgs};
 use common::{TCP_PORT, UDP_PORT};
 use get_if_addrs::get_if_addrs;
+use std::net::SocketAddr;
 use tracing::{info, warn};
 
+pub mod tcp;
+pub mod udp;
+
 pub use udp::run_udp_server;
+
+use crate::middleware;
 
 pub async fn start_server(args: &ServeArgs) {
     let protocol = args.protocol().clone();
@@ -22,8 +23,10 @@ pub async fn start_server(args: &ServeArgs) {
     let public_ip = get_public_ip().expect("Failed to get public IP address");
     info!(public_ip = ?public_ip, "Listening at IP address");
 
+    let middleware_stack = middleware::MiddlewareStack::new();
+
     if protocol == NetworkProtocol::TCP {
-        tcp::DbServer::new(tcp_addr)
+        tcp::DbServer::new(tcp_addr, middleware_stack)
             .run()
             .await
             .expect("TCP server failed to run");
