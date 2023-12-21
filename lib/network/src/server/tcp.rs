@@ -18,11 +18,11 @@ use sysinfo::System;
 use tokio::io::AsyncWriteExt;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::signal;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, Mutex};
 use tracing::{debug, error, info, instrument};
 use typed_builder::TypedBuilder;
 // use metrics::{counter, gauge, register_counter, register_gauge, register_histogram, Histogram, HistogramOpts, HistogramTimer, HistogramVec, Opts, Registry};
-use metrics::manager::{MetricsManager, MetricsManagerRef};
+use metrics::manager::{MetricsManager, MetricsManagerRef, MetricsServerError};
 
 /// Unique identifier for each connection
 pub type ConnectionId = String;
@@ -39,7 +39,6 @@ pub struct DbServer {
 impl DbServer {
     /// Start a new server instance with the given address and
     /// middleware stack.
-    #[instrument(skip(middleware_stack))]
     pub fn new(server_address: SocketAddr, mut middleware_stack: MiddlewareStack) -> Self {
         // By default, we use the logging middleware
         middleware_stack.add_middleware(LoggingMiddleware::new());
@@ -48,12 +47,12 @@ impl DbServer {
 
         metrics_manager.register_collector(
             CpuUsageCollector::builder()
-                .system(Arc::new(System::new_all()))
+                .system(Arc::new(Mutex::new(System::new_all())))
                 .build(),
         );
         metrics_manager.register_collector(
             MemoryUsageCollector::builder()
-                .system(Arc::new(System::new_all()))
+                .system(Arc::new(Mutex::new(System::new_all())))
                 .build(),
         );
 
@@ -70,7 +69,6 @@ impl DbServer {
 
     /// Accept incoming connections and spawn a new connection handler
     /// for each one.
-    #[instrument(skip(listener))]
     pub async fn accept_connections(&self, listener: TcpListener) -> Result<()> {
         while let Ok((socket, addr)) = listener.accept().await {
             let connection_id = generate_connection_id(&addr); // Generate a unique ID for the connection
@@ -96,7 +94,6 @@ impl DbServer {
         Ok(())
     }
 
-    #[instrument(skip(self))]
     pub async fn run(&self) -> Result<()> {
         // TODO: Make this configurable via CLI args
         let mut current_port = self.server_address.port();
@@ -109,21 +106,6 @@ impl DbServer {
             .parse::<u64>()
             .unwrap_or(500);
         let mut attempt = 0;
-
-        let metrics_manager = self.metrics_manager.clone();
-
-        const METRICS_DELAY: u64 = 15; // seconds
-
-        // Start the metrics collection loop on a background thread
-        tokio::spawn(async move {
-            loop {
-                let metrics = metrics_manager.collect_metrics().await;
-                for metric in metrics {
-                    metric.log_metric();
-                }
-                tokio::time::sleep(Duration::from_secs(METRICS_DELAY)).await;
-            }
-        });
 
         loop {
             let address = SocketAddr::new(self.server_address.ip(), current_port);
@@ -162,14 +144,51 @@ impl DbServer {
         Ok(())
     }
 
-    /// Start the metrics server on a background thread.
-    pub fn start_metrics_server(&self) {
-        let metrics_server_port = env::var("METRICS_SERVER_PORT")
-            .unwrap_or("8080".to_string())
-            .parse::<u16>()
-            .unwrap_or(8080);
-        let metrics_address = SocketAddr::new(self.server_address.ip(), metrics_server_port);
+    /// Start the metrics server on a background thread with retry logic for port allocation.
+    pub async fn start_metrics_server(&self) -> Result<()> {
+        let server_ip = self.server_address.ip();
+        let default_port = 8080;
+        let max_port_walk = 100; // Maximum number of ports to try before giving up
+
+        let mut port = default_port;
+        while port < default_port + max_port_walk {
+            match TcpListener::bind(SocketAddr::new(server_ip, port)).await {
+                Ok(_) => {
+                    break;
+                }
+                Err(_) => {
+                    port += 1;
+
+                    if port == default_port + max_port_walk {
+                        return Err(MetricsServerError::PortAllocationError(max_port_walk).into());
+                    }
+                }
+            }
+        }
+
         let metrics_manager = self.metrics_manager.clone();
+
+        const METRICS_DELAY: u64 = 15; // seconds
+
+        // Start the metrics collection loop on a background thread
+        tokio::spawn(async move {
+            debug!(
+                "Starting metrics collection every {} seconds",
+                METRICS_DELAY
+            );
+            loop {
+                let metrics = metrics_manager.collect_metrics().await;
+
+                info!("-- METRICS ({}) --", chrono::Utc::now());
+                for metric in metrics {
+                    metric.log_metric();
+                }
+                tokio::time::sleep(Duration::from_secs(METRICS_DELAY)).await;
+            }
+        });
+
+        let metrics_manager = self.metrics_manager.clone();
+        let metrics_address = SocketAddr::new(server_ip, port);
 
         tokio::spawn(async move {
             let app = Router::new().route(
@@ -183,6 +202,8 @@ impl DbServer {
                 .await
                 .expect("Failed to start metrics server");
         });
+
+        Ok(())
     }
 
     /// Start a no-op metrics server which tells the client that metrics are disabled on any request.

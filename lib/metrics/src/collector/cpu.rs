@@ -4,7 +4,8 @@ use async_trait::async_trait;
 use getset::{Getters, Setters};
 use std::sync::Arc;
 use sysinfo::{CpuRefreshKind, RefreshKind, System};
-use tracing::{instrument, trace};
+use tokio::sync::Mutex;
+use tracing::trace;
 use typed_builder::TypedBuilder;
 
 #[derive(Debug, Clone, Getters, Setters, TypedBuilder)]
@@ -18,7 +19,7 @@ impl CpuUsageCollector {
             System::new_with_specifics(RefreshKind::new().with_cpu(CpuRefreshKind::everything()));
 
         CpuUsageCollector::builder()
-            .system(Arc::new(system))
+            .system(Arc::new(Mutex::new(system)))
             .build()
     }
 }
@@ -26,36 +27,47 @@ impl CpuUsageCollector {
 #[async_trait]
 impl MetricCollector for CpuUsageCollector {
     #[inline]
-    #[instrument(skip(self))]
-    async fn initialize(&self) {
-        trace!("Initializing CPU usage collector (no-op)")
+    fn name(&self) -> String {
+        "CPU Usage Collector".to_string()
     }
 
     #[inline]
-    #[instrument(skip(self))]
     async fn collect(&self) -> Metric {
-        let cpu_usage = self.system.global_cpu_info().cpu_usage();
-        Metric::CpuUsage(CpuUsage::builder().usage_percentage(cpu_usage).build())
+        let mut system = self.system.lock().await;
+
+        let prev = system.global_cpu_info().cpu_usage();
+        system.refresh_cpu();
+        let current = system.global_cpu_info().cpu_usage();
+
+        trace!("{}", format_cpu_usage_diff(prev, current));
+        Metric::CpuUsage(CpuUsage::builder().usage_percentage(current).build())
     }
+}
 
-    #[inline]
-    #[instrument(skip(self))]
-    async fn update(&mut self) {
-        // Asynchronously refresh the system information
-        let mut s =
-            System::new_with_specifics(RefreshKind::new().with_cpu(CpuRefreshKind::everything()));
+/// Formats the CPU usage change.
+fn format_cpu_usage_diff(prev: f32, current: f32) -> String {
+    let change_type = if current > prev {
+        "increased"
+    } else {
+        "decreased"
+    };
 
-        // Wait a bit because CPU usage is based on diff.
-        std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
-        // Refresh CPUs again.
-        s.refresh_cpu();
+    let diff = (current - prev).abs();
+    let prev = format_cpu_pct(prev);
+    let current = format_cpu_pct(current);
 
-        self.system = Arc::new(s);
-    }
+    format!(
+        "CPU usage {} from {:.2}% to {:.2}% (change: {:.2}%)",
+        change_type, prev, current, diff
+    )
+}
 
-    #[inline]
-    #[instrument(skip(self))]
-    async fn cleanup(&self) {
-        trace!("Cleaning up CPU usage collector (no-op)")
-    }
+/// Pretty-print the CPU percentage.
+pub fn format_cpu_pct(usage: f32) -> String {
+    format!("{:.2}%", usage)
+}
+
+/// Pretty-print the CPU usage.
+pub fn format_cpu_usage(usage: f32) -> String {
+    format!("CPU usage: {}", format_cpu_pct(usage))
 }

@@ -1,6 +1,7 @@
+#![allow(dead_code)]
+
 use anyhow::Result;
 use buffer::{BufferPoolManager, ReplacementPolicy};
-use dashmap::DashMap;
 use execution::process_query;
 use std::{
     sync::Arc,

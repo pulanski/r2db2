@@ -6,13 +6,24 @@ use core::fmt;
 use dashmap::DashMap;
 use serde_json::json;
 use std::sync::Arc;
+use thiserror::Error;
+use tracing::debug;
+
+#[derive(Error, Debug)]
+pub enum MetricsServerError {
+    #[error("Port allocation failed after trying {0} ports")]
+    PortAllocationError(u16),
+}
 
 /// A reference-counted reference to a [`MetricsManager`].
 pub type MetricsManagerRef = Arc<MetricsManager>;
 
+/// A reference-counted reference to a [`MetricCollector`].
+pub type MetricCollectorRef = Arc<dyn MetricCollector>;
+
 pub struct MetricsManager {
     metrics: Arc<DashMap<MetricKind, Metric>>,
-    collectors: Vec<Box<dyn MetricCollector>>,
+    collectors: Vec<MetricCollectorRef>,
 }
 
 impl fmt::Debug for MetricsManager {
@@ -49,16 +60,19 @@ impl MetricsManager {
     }
 
     pub fn register_collector(&mut self, collector: impl MetricCollector + 'static) {
-        self.collectors.push(Box::new(collector));
+        self.collectors.push(Arc::new(collector));
     }
 
     pub async fn collect_metrics(&self) -> Vec<Metric> {
-        let mut metrics = vec![];
+        let mut collected_metrics = Vec::new();
 
-        for collector in self.collectors.iter() {
-            metrics.push(collector.collect().await);
+        for collector in &self.collectors {
+            debug!("Collecting metrics from {}", collector.name());
+            let metric = collector.collect().await;
+            self.metrics.insert(metric.kind(), metric.clone()); // Assuming Metric has a kind() method
+            collected_metrics.push(metric);
         }
 
-        metrics
+        collected_metrics
     }
 }

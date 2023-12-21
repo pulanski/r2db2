@@ -4,6 +4,8 @@ use std::time::Duration;
 use tracing::info;
 use typed_builder::TypedBuilder;
 
+use crate::collector::memory::format_memory_usage;
+
 /// Represents different kinds of metrics that can be collected.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum MetricKind {
@@ -80,6 +82,28 @@ pub enum Metric {
 
     // Query type metrics
     QueryTypeStats(QueryTypeStats),
+}
+
+impl Metric {
+    pub fn kind(&self) -> MetricKind {
+        match self {
+            Metric::CpuUsage(_) => MetricKind::CpuUsage,
+            Metric::MemoryUsage(_) => MetricKind::MemoryUsage,
+            Metric::ActiveConnections(_) => MetricKind::ActiveConnections,
+            Metric::TransactionRate(_) => MetricKind::TransactionRate,
+            Metric::GarbageCollection(_) => MetricKind::GarbageCollection,
+            Metric::QueryExecutionTime(_) => MetricKind::QueryExecutionTime,
+            Metric::NetworkIO(_) => MetricKind::NetworkIO,
+            Metric::DiskIO(_) => MetricKind::DiskIO,
+            Metric::TableSpaceUsage(_) => MetricKind::TableSpaceUsage,
+            Metric::CacheHitRate(_) => MetricKind::CacheHitRate,
+            Metric::ReplicationDelay(_) => MetricKind::ReplicationDelay,
+            Metric::LockWaitTime(_) => MetricKind::LockWaitTime,
+            Metric::RowOperations(_) => MetricKind::RowOperations,
+            Metric::IndexUsage(_) => MetricKind::IndexUsage,
+            Metric::QueryTypeStats(_) => MetricKind::SelectQueries,
+        }
+    }
 }
 
 /// Metric for tracking CPU usage.
@@ -250,7 +274,7 @@ impl Metric {
     pub fn log_metric(&self) {
         match self {
             Metric::CpuUsage(data) => info!("CPU Usage: {}%", data.usage_percentage),
-            Metric::MemoryUsage(data) => info!("Memory Usage: {}MB", data.usage_mb),
+            Metric::MemoryUsage(data) => info!("{}", format_memory_usage(data.usage_mb)),
             Metric::ActiveConnections(data) => info!("Active Connections: {}", data.count),
             Metric::TransactionRate(data) => info!("Transaction Rate: {} tps", data.per_second),
             Metric::GarbageCollection(data) => info!(
