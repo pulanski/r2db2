@@ -30,12 +30,17 @@ pub async fn start_server(args: &ServeArgs) {
 
         // Start the metrics server (if enabled)
         if *args.metrics() {
-            server.start_metrics_server();
+            server
+                .start_metrics_server()
+                .await
+                .expect("Metrics server failed to run");
         } else {
             warn!("Metrics server disabled");
             // Start a no-op metrics server which tells the client that metrics are disabled on any request
             server.start_noop_metrics_server();
         }
+
+        info!("We're ready to rumble! (TCP server started)");
 
         // Run the SQL server
         server.run().await.expect("TCP server failed to run");

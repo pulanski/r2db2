@@ -58,7 +58,7 @@ pub struct ServeArgs {
     #[getset(get = "pub")]
     protocol: NetworkProtocol,
     /// Enable the metrics server
-    #[arg(short, long, default_value = "false")] // TODO: Change to false once metrics are more stable
+    #[arg(short, long, default_value = "true")] // TODO: Change to false when system is more mature
     #[getset(get = "pub")]
     metrics: bool,
 }

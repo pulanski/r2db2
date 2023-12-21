@@ -13,7 +13,9 @@ common = { path = "../common" }
 tokio = { version = "1.0", features = ["full"] }
 tracing = "0.1"
 pyroscope_pprofrs = "0.2.7"
-anyhow = "1.0"
+anyhow = "1.0.76"
+parking_lot = "0.12.1"
+thiserror = "1.0.51"
 pyroscope = "0.5.7"
 dashmap = "5.5.3"
 serde = { version = "1.0.193", features = ["derive"] }
