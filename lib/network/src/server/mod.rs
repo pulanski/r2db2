@@ -26,10 +26,19 @@ pub async fn start_server(args: &ServeArgs) {
     let middleware_stack = middleware::MiddlewareStack::new();
 
     if protocol == NetworkProtocol::TCP {
-        tcp::DbServer::new(tcp_addr, middleware_stack)
-            .run()
-            .await
-            .expect("TCP server failed to run");
+        let server = tcp::DbServer::new(tcp_addr, middleware_stack);
+
+        // Start the metrics server (if enabled)
+        if *args.metrics() {
+            server.start_metrics_server();
+        } else {
+            warn!("Metrics server disabled");
+            // Start a no-op metrics server which tells the client that metrics are disabled on any request
+            server.start_noop_metrics_server();
+        }
+
+        // Run the SQL server
+        server.run().await.expect("TCP server failed to run");
     } else if protocol == NetworkProtocol::UDP {
         warn!("UDP server not implemented yet");
         run_udp_server(&udp_addr)

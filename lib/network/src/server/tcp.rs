@@ -1,8 +1,9 @@
 use crate::middleware::trace::LoggingMiddleware;
-use crate::middleware::{Middleware, MiddlewareStack, MiddlewareStackRef};
+use crate::middleware::{MiddlewareStack, MiddlewareStackRef};
 use crate::protocol::handler::{ConnectionHandler, Protocol};
 use crate::protocol::message::{Message, MessageKind};
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
+use axum::{routing::get, Router};
 use dashmap::DashMap;
 use driver::{Driver, DriverRef};
 use rustc_hash::FxHasher;
@@ -10,15 +11,18 @@ use std::env;
 use std::hash::{Hash, Hasher};
 use std::net::SocketAddr;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
-use tokio::io::{self, AsyncWriteExt};
+use std::time::Duration;
+use tokio::io::AsyncWriteExt;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::signal;
 use tokio::sync::mpsc;
-use tracing::{debug, error, info, instrument, trace};
+use tracing::{debug, error, info, instrument};
 use typed_builder::TypedBuilder;
+// use metrics::{counter, gauge, register_counter, register_gauge, register_histogram, Histogram, HistogramOpts, HistogramTimer, HistogramVec, Opts, Registry};
+use metrics::manager::{MetricsManager, MetricsManagerRef};
 
-pub type ConnectionId = String; // Unique identifier for each connection
+/// Unique identifier for each connection
+pub type ConnectionId = String;
 
 #[derive(Debug, TypedBuilder)]
 pub struct DbServer {
@@ -26,14 +30,18 @@ pub struct DbServer {
     connections: Arc<DashMap<ConnectionId, mpsc::Sender<TcpStream>>>,
     driver: DriverRef,
     middleware_stack: MiddlewareStackRef,
+    metrics_manager: MetricsManagerRef,
 }
 
 impl DbServer {
     /// Start a new server instance with the given address and
     /// middleware stack.
+    #[instrument(skip(middleware_stack))]
     pub fn new(server_address: SocketAddr, mut middleware_stack: MiddlewareStack) -> Self {
         // By default, we use the logging middleware
         middleware_stack.add_middleware(LoggingMiddleware::new());
+
+        let metrics_manager = MetricsManager::new();
 
         DbServer::builder()
             .server_address(server_address)
@@ -42,9 +50,13 @@ impl DbServer {
                 Driver::new("test.db").expect("Failed to create driver"),
             ))
             .middleware_stack(Arc::new(middleware_stack))
+            .metrics_manager(Arc::new(metrics_manager))
             .build()
     }
 
+    /// Accept incoming connections and spawn a new connection handler
+    /// for each one.
+    #[instrument(skip(listener))]
     pub async fn accept_connections(&self, listener: TcpListener) -> Result<()> {
         while let Ok((socket, addr)) = listener.accept().await {
             let connection_id = generate_connection_id(&addr); // Generate a unique ID for the connection
@@ -70,7 +82,9 @@ impl DbServer {
         Ok(())
     }
 
-    pub async fn run(&self) -> io::Result<()> {
+    #[instrument(skip(self))]
+    pub async fn run(&self) -> Result<()> {
+        // TODO: Make this configurable via CLI args
         let mut current_port = self.server_address.port();
         let max_retries = env::var("MAX_PORT_RETRIES")
             .unwrap_or("5".to_string())
@@ -107,7 +121,7 @@ impl DbServer {
                     );
                     if attempt >= max_retries {
                         error!("Reached maximum retry attempts. Unable to start server.");
-                        return Err(e);
+                        return Err(anyhow!("Unable to start server"));
                     }
                     current_port = current_port.wrapping_add(1);
                     attempt += 1;
@@ -117,6 +131,49 @@ impl DbServer {
         }
 
         Ok(())
+    }
+
+    /// Start the metrics server on a background thread.
+    pub fn start_metrics_server(&self) {
+        let metrics_server_port = env::var("METRICS_SERVER_PORT")
+            .unwrap_or("8080".to_string())
+            .parse::<u16>()
+            .unwrap_or(8080);
+        let metrics_address = SocketAddr::new(self.server_address.ip(), metrics_server_port);
+        let metrics_manager = self.metrics_manager.clone();
+
+        tokio::spawn(async move {
+            let app = Router::new().route(
+                "/metrics",
+                get(move || async move { metrics_manager.get_metrics().await }),
+            );
+
+            // Run the axum server
+            axum::Server::bind(&metrics_address)
+                .serve(app.into_make_service())
+                .await
+                .expect("Failed to start metrics server");
+        });
+    }
+
+    /// Start a no-op metrics server which tells the client that metrics are disabled on any request.
+    pub fn start_noop_metrics_server(&self) {
+        let metrics_address = SocketAddr::new(self.server_address.ip(), 8080);
+
+        tokio::spawn(async move {
+            let app = Router::new().route(
+                "/metrics",
+                get(|| async move {
+                    "Metrics server disabled. Enable metrics with the --metrics flag."
+                }),
+            );
+
+            // Run the axum server
+            axum::Server::bind(&metrics_address)
+                .serve(app.into_make_service())
+                .await
+                .expect("Failed to start metrics server");
+        });
     }
 }
 
