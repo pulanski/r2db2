@@ -1,4 +1,8 @@
-use crate::metric::{Metric, MetricKind};
+use crate::{
+    collector::MetricCollector,
+    metric::{Metric, MetricKind},
+};
+use core::fmt;
 use dashmap::DashMap;
 use serde_json::json;
 use std::sync::Arc;
@@ -6,15 +10,24 @@ use std::sync::Arc;
 /// A reference-counted reference to a [`MetricsManager`].
 pub type MetricsManagerRef = Arc<MetricsManager>;
 
-#[derive(Debug, Clone)]
 pub struct MetricsManager {
     metrics: Arc<DashMap<MetricKind, Metric>>,
+    collectors: Vec<Box<dyn MetricCollector>>,
+}
+
+impl fmt::Debug for MetricsManager {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("MetricsManager")
+            .field("metrics", &self.metrics)
+            .finish()
+    }
 }
 
 impl MetricsManager {
     pub fn new() -> Self {
         Self {
             metrics: Arc::new(DashMap::new()),
+            collectors: vec![],
         }
     }
 
@@ -33,5 +46,19 @@ impl MetricsManager {
         }
 
         json!(all_metrics).to_string()
+    }
+
+    pub fn register_collector(&mut self, collector: impl MetricCollector + 'static) {
+        self.collectors.push(Box::new(collector));
+    }
+
+    pub async fn collect_metrics(&self) -> Vec<Metric> {
+        let mut metrics = vec![];
+
+        for collector in self.collectors.iter() {
+            metrics.push(collector.collect().await);
+        }
+
+        metrics
     }
 }

@@ -1,6 +1,8 @@
+use getset::{Getters, Setters};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use tracing::info;
+use typed_builder::TypedBuilder;
 
 /// Represents different kinds of metrics that can be collected.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -81,7 +83,8 @@ pub enum Metric {
 }
 
 /// Metric for tracking CPU usage.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Getters, Setters, TypedBuilder, Serialize, Deserialize)]
+#[getset(get = "pub")]
 pub struct CpuUsage {
     /// CPU usage percentage (0-100%)
     usage_percentage: f32,
@@ -90,7 +93,7 @@ pub struct CpuUsage {
 /// Metric for tracking memory usage.
 ///
 /// Memory usage is measured in megabytes (MB).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, TypedBuilder, Serialize, Deserialize)]
 pub struct MemoryUsage {
     /// Total memory usage in megabytes.
     usage_mb: u64,

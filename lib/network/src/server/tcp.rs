@@ -6,12 +6,15 @@ use anyhow::{anyhow, Context, Result};
 use axum::{routing::get, Router};
 use dashmap::DashMap;
 use driver::{Driver, DriverRef};
+use metrics::collector::cpu::CpuUsageCollector;
+use metrics::collector::memory::MemoryUsageCollector;
 use rustc_hash::FxHasher;
 use std::env;
 use std::hash::{Hash, Hasher};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
+use sysinfo::System;
 use tokio::io::AsyncWriteExt;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::signal;
@@ -41,7 +44,18 @@ impl DbServer {
         // By default, we use the logging middleware
         middleware_stack.add_middleware(LoggingMiddleware::new());
 
-        let metrics_manager = MetricsManager::new();
+        let mut metrics_manager = MetricsManager::new();
+
+        metrics_manager.register_collector(
+            CpuUsageCollector::builder()
+                .system(Arc::new(System::new_all()))
+                .build(),
+        );
+        metrics_manager.register_collector(
+            MemoryUsageCollector::builder()
+                .system(Arc::new(System::new_all()))
+                .build(),
+        );
 
         DbServer::builder()
             .server_address(server_address)
@@ -95,6 +109,21 @@ impl DbServer {
             .parse::<u64>()
             .unwrap_or(500);
         let mut attempt = 0;
+
+        let metrics_manager = self.metrics_manager.clone();
+
+        const METRICS_DELAY: u64 = 15; // seconds
+
+        // Start the metrics collection loop on a background thread
+        tokio::spawn(async move {
+            loop {
+                let metrics = metrics_manager.collect_metrics().await;
+                for metric in metrics {
+                    metric.log_metric();
+                }
+                tokio::time::sleep(Duration::from_secs(METRICS_DELAY)).await;
+            }
+        });
 
         loop {
             let address = SocketAddr::new(self.server_address.ip(), current_port);
