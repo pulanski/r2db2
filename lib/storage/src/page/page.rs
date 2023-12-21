@@ -17,7 +17,6 @@ pub enum PageError {
 
     #[error("Pin count overflow for page {0}")]
     PinCountOverflow(PageId),
-    // ...
 }
 
 /// Represents a memory page in the system.

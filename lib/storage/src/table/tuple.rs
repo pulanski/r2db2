@@ -4,11 +4,10 @@ use catalog::{schema::Schema, ColumnLength};
 use common::rid::RID;
 use getset::{Getters, Setters};
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use thiserror::Error;
 use ty::value::Value;
 use typed_builder::TypedBuilder;
-
-use std::fmt;
 
 #[derive(Debug, Clone, PartialEq)]
 struct TupleMeta {
