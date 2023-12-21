@@ -47,10 +47,10 @@ pub struct RID {
 
 impl RID {
     pub fn new(page_id: impl Into<PageId>, slot_num: u32) -> Self {
-        Self {
-            page_id: Some(page_id.into()),
-            slot_num,
-        }
+        RID::builder()
+            .page_id(Some(page_id.into()))
+            .slot_num(slot_num)
+            .build()
     }
 
     /// Creates a `RID` from a 64-bit integer representation.

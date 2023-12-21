@@ -2,7 +2,7 @@ use super::{MetricCollector, SystemRef};
 use crate::metric::{MemoryUsage, Metric};
 use async_trait::async_trait;
 use getset::{Getters, Setters};
-use tracing::{instrument, trace};
+use tracing::trace;
 use typed_builder::TypedBuilder;
 
 #[derive(Debug, Clone, Getters, Setters, TypedBuilder)]
