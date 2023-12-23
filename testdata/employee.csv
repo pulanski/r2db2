@@ -1,4 +1,21 @@
-id,name,department,salary
-1,Alice,Engineering,70000
-2,Bob,Marketing,60000
-3,Charlie,HR,50000
+id,name,department,salary,email,hire_date,location,phone_number,performance_rating
+1,Alice,Engineering,70000,alice@company.com,2018-06-12,New York,555-0101,Excellent
+2,Bob,Marketing,60000,bob@company.com,2019-02-23,Los Angeles,555-0102,Good
+3,Charlie,HR,50000,charlie@company.com,2017-08-30,Chicago,555-0103,Average
+4,David,Engineering,75000,david@company.com,2020-03-15,Boston,555-0104,Excellent
+5,Eva,Marketing,62000,eva@company.com,2018-11-02,San Francisco,555-0105,Good
+6,Frank,HR,51000,frank@company.com,2016-05-21,Seattle,555-0106,Average
+7,Gina,Engineering,73000,gina@company.com,2021-07-18,Denver,555-0107,Excellent
+8,Hank,Marketing,58000,hank@company.com,2015-09-30,Austin,555-0108,Good
+9,Irene,HR,50500,irene@company.com,2019-12-04,Miami,555-0109,Average
+10,Jason,Engineering,72000,jason@company.com,2018-03-19,San Diego,555-0110,Excellent
+11,Karen,Marketing,61000,karen@company.com,2020-06-07,Philadelphia,555-0111,Good
+12,Louis,HR,52000,louis@company.com,2021-01-15,Dallas,555-0112,Average
+13,Mia,Engineering,71000,mia@company.com,2017-07-23,Houston,555-0113,Excellent
+14,Nick,Marketing,59500,nick@company.com,2016-10-30,Atlanta,555-0114,Good
+15,Olivia,HR,53000,olivia@company.com,2015-04-19,Phoenix,555-0115,Average
+16,Peter,Engineering,74000,peter@company.com,2022-02-10,San Jose,555-0116,Excellent
+17,Quincy,Marketing,60500,quincy@company.com,2021-09-25,Orlando,555-0117,Good
+18,Rachel,HR,51500,rachel@company.com,2019-05-13,Las Vegas,555-0118,Average
+19,Steve,Engineering,70500,steve@company.com,2020-08-22,Portland,555-0119,Excellent
+20,Tina,Marketing,59000,tina@company.com,2018-01-27,Saint Louis,555-0120,Good

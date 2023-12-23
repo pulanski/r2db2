@@ -2,6 +2,7 @@ use clap::{command, Args, Parser, Subcommand, ValueEnum};
 use core::fmt;
 use getset::Getters;
 use std::path::PathBuf;
+use typed_builder::TypedBuilder;
 
 pub mod tui;
 
@@ -12,7 +13,7 @@ pub mod tui;
 pub struct Cli {
     #[command(subcommand)]
     #[getset(get = "pub")]
-    command: Commands,
+    command: Option<Commands>,
 }
 
 #[derive(Debug, Subcommand)]
@@ -28,14 +29,13 @@ pub enum Commands {
     // Additional commands can be added here
 }
 
-#[derive(Debug, Args, Getters)]
+#[derive(Debug, Args, Getters, TypedBuilder)]
+#[getset(get = "pub")]
 pub struct SqlArgs {
     /// SQL command or path to a SQL script file
     #[arg(short, long)]
-    #[getset(get = "pub")]
     command: Option<String>,
     /// Path to the database file, use ':memory:' for an in-memory database
-    #[getset(get = "pub")]
     db_path: Option<String>,
 }
 

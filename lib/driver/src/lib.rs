@@ -2,13 +2,13 @@
 
 use anyhow::Result;
 use buffer::{BufferPoolManager, ReplacementPolicy};
-use execution::process_query;
+use execution::QueryEngine;
 use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
 use storage::disk::DiskManager;
-use tracing::{info, instrument, trace};
+use tracing::{error, info, instrument, trace};
 use typed_builder::TypedBuilder;
 
 #[instrument]
@@ -64,13 +64,13 @@ struct OptimizedPlan;
 #[derive(Debug)]
 struct PhysicalPlan;
 
+pub type DriverRef = Arc<Driver>;
 #[derive(Debug, TypedBuilder)]
 pub struct Driver {
     buffer_pool_manager: Arc<BufferPoolManager>,
     disk_manager: Arc<DiskManager>,
+    query_engine: QueryEngine,
 }
-
-pub type DriverRef = Arc<Driver>;
 
 impl Driver {
     // Create a new driver for a database stored in the specified path
@@ -91,24 +91,22 @@ impl Driver {
             buffer_start.elapsed()
         );
 
+        let query_engine = QueryEngine::new();
+
         Ok(Driver::builder()
             .buffer_pool_manager(buffer_pool_manager)
             .disk_manager(disk_manager)
+            .query_engine(query_engine)
             .build())
     }
 
-    // Process a SQL command
+    /// Process a SQL command
     #[instrument(skip(self, command))]
     pub async fn process_sql_command(&self, command: Option<String>) {
-        info!("Processing SQL command");
-
-        // Default to current time query if no command is specified
-        let start = Instant::now();
-        let query = command.unwrap_or("SELECT NOW();".to_string());
-        process_query(&query)
-            .await
-            .expect("Failed to process query");
-
-        info!("SQL command processing completed in {:?}", start.elapsed());
+        let query = command.unwrap_or_else(|| "SELECT NOW();".to_string());
+        match self.query_engine.execute_query(&query).await {
+            Ok(_) => info!("Query executed successfully"),
+            Err(e) => error!("Failed to execute query: {:?}", e),
+        }
     }
 }

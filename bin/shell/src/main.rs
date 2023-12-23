@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
-use cli::{tui::handle_sql_command, Cli, Commands, MigrateArgs};
+use cli::{tui::handle_sql_command, Cli, Commands, MigrateArgs, SqlArgs};
 use common::util::trace::initialize_tracing;
 use network::client::start_client;
 use network::server::start_server;
@@ -41,21 +41,33 @@ async fn async_main() -> Result<ExitCode> {
     trace!(?args, "Parsed CLI arguments in {:?}", start.elapsed());
 
     match args.command() {
-        Commands::Sql(args) => {
-            info!("Executing SQL command");
-            handle_sql_command(args).await;
+        None => {
+            info!("No command provided, defaulting to test.db");
+            handle_sql_command(
+                &SqlArgs::builder()
+                    .db_path(Some("test.db".to_string()))
+                    .command(None)
+                    .build(),
+            )
+            .await;
         }
-        Commands::Serve(args) => {
-            start_server(args).await;
-        }
-        Commands::Migrate(args) => {
-            info!("Handling database migration");
-            handle_migration(args);
-        }
-        Commands::Client(args) => {
-            info!("Starting client");
-            start_client(args).await?;
-        }
+        Some(command) => match command {
+            Commands::Sql(args) => {
+                info!("Executing SQL command");
+                handle_sql_command(args).await;
+            }
+            Commands::Serve(args) => {
+                start_server(args).await;
+            }
+            Commands::Migrate(args) => {
+                info!("Handling database migration");
+                handle_migration(args);
+            }
+            Commands::Client(args) => {
+                info!("Starting client");
+                start_client(args).await?;
+            }
+        },
     }
 
     Ok(ExitCode::SUCCESS)
