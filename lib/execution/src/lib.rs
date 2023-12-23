@@ -15,7 +15,7 @@ use datafusion_sql::planner::{ContextProvider, SqlToRel};
 use datafusion_sql::TableReference;
 use std::any::Any;
 use std::sync::Arc;
-use tracing::{instrument, trace};
+use tracing::instrument;
 
 #[instrument]
 pub async fn process_query(sql: &str) -> Result<()> {

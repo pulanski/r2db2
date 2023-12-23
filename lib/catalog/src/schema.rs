@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use std::sync::Arc;
+
 use crate::{Column, ColumnLength};
 use anyhow::Result;
 use getset::{Getters, Setters};
@@ -7,6 +9,9 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tracing::{error, info, trace};
 use typed_builder::TypedBuilder;
+
+/// A reference-counted [`Schema`] handle that can be shared across threads.
+pub type SchemaRef = Arc<Schema>;
 
 /// [`Schema`] represents the structure of a dataset in a database, defining the
 /// organization, types, and properties of the data.
@@ -92,6 +97,7 @@ impl Schema {
                 }
             }
         }
+
         trace!("Schema copied with {} columns", cols.len());
         Ok(Self::new(cols))
     }
@@ -116,6 +122,17 @@ impl Schema {
         }
 
         Err(SchemaError::ColumnNameNotFound.into())
+    }
+}
+
+impl Default for Schema {
+    fn default() -> Self {
+        Schema::builder()
+            .length(0)
+            .columns(Vec::new())
+            .tuple_is_inlined(true)
+            .uninlined_columns(Vec::new())
+            .build()
     }
 }
 
@@ -151,7 +168,6 @@ mod tests {
         // Assertions to validate the schema's state
         assert_eq!(schema.length(), &expected_length);
         assert_eq!(schema.columns().len(), expected_columns_len);
-        // More assertions...
     }
 
     #[test]

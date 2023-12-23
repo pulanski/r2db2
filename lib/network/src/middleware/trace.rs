@@ -4,7 +4,7 @@ use common::util::time::{elapsed_duration_since, format_duration, now_as_u64};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use tokio::net::TcpStream;
-use tracing::{info, warn};
+use tracing::{info, trace, warn};
 
 /// Middleware for logging various stages of the connection lifecycle.
 ///
@@ -39,7 +39,7 @@ impl Middleware for LoggingMiddleware {
     async fn on_connect(&self, stream: &TcpStream) -> anyhow::Result<()> {
         self.connection_start_time
             .store(now_as_u64(), Ordering::SeqCst);
-        info!("Connection established with {}", stream.peer_addr()?);
+        trace!("Connection established with {}", stream.peer_addr()?);
         Ok(())
     }
 
@@ -47,7 +47,7 @@ impl Middleware for LoggingMiddleware {
     async fn before_request(&self, stream: &mut TcpStream) -> anyhow::Result<()> {
         self.request_start_time
             .store(now_as_u64(), Ordering::SeqCst);
-        info!("Handling request from {}", stream.peer_addr()?);
+        trace!("Handling request from {}", stream.peer_addr()?);
         Ok(())
     }
 
@@ -55,7 +55,7 @@ impl Middleware for LoggingMiddleware {
     async fn after_request(&self, stream: &mut TcpStream) -> anyhow::Result<()> {
         let request_duration =
             elapsed_duration_since(self.request_start_time.load(Ordering::SeqCst));
-        info!(
+        trace!(
             "Request handled successfully for {} (took {})",
             stream.peer_addr()?,
             format_duration(request_duration)
@@ -67,7 +67,7 @@ impl Middleware for LoggingMiddleware {
     async fn on_disconnect(&self, stream: &TcpStream) -> anyhow::Result<()> {
         let connection_duration =
             elapsed_duration_since(self.connection_start_time.load(Ordering::SeqCst));
-        warn!(
+        trace!(
             "Connection terminated with {} (lifespan: {})",
             stream.peer_addr()?,
             format_duration(connection_duration)

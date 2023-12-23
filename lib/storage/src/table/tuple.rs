@@ -9,23 +9,27 @@ use thiserror::Error;
 use ty::value::Value;
 use typed_builder::TypedBuilder;
 
-#[derive(Debug, Clone, PartialEq)]
-struct TupleMeta {
-    ts: i64,
-    is_deleted: bool,
-}
-
-impl TupleMeta {
-    // TODO: impl methods and functionality
-}
-
 #[derive(Error, Debug)]
 pub enum TupleError {
     #[error("Invalid operation")]
     InvalidOperation,
-    // ...
 }
 
+/// Represents a tuple (or record) in a database.
+///
+/// A `Tuple` consists of a globally unique identifier (`rid`) and a sequence of bytes (`data`)
+/// that represents the actual data of the tuple. This structure is fundamental in representing
+/// rows in a table within the database.
+///
+/// # Examples
+///
+/// Creating a new `Tuple`:
+///
+/// ```
+/// use your_crate::{Tuple, RID};
+/// let data = vec![1, 2, 3, 4, 5]; // Sample data
+/// let tuple = Tuple::new(RID::default(), data);
+/// ```
 #[derive(
     Debug,
     Clone,
@@ -41,27 +45,35 @@ pub enum TupleError {
     Deserialize,
 )]
 #[getset(get = "pub", set = "pub")]
-struct Tuple {
+pub struct Tuple {
     rid: RID,
     data: Vec<u8>,
 }
 
 impl Tuple {
     pub fn empty() -> Self {
-        Self {
-            rid: RID::default(),
-            data: Vec::new(),
-        }
+        Tuple::builder()
+            .rid(RID::default())
+            .data(Vec::new())
+            .build()
     }
 
+    /// Creates a new `Tuple` with the given `RID` and data.
+    ///
+    /// # Parameters
+    ///
+    /// - `rid`: A globally unique identifier for the tuple.
+    /// - `data`: The actual data of the tuple as a sequence of bytes.
     pub fn new(rid: RID, data: Vec<u8>) -> Self {
-        Self { rid, data }
+        Tuple::builder().rid(rid).data(data).build()
     }
 
+    /// Returns the length of the tuple's data.
     pub fn len(&self) -> usize {
         self.data.len()
     }
 
+    /// Checks if the tuple's data is empty.
     pub fn is_empty(&self) -> bool {
         self.data.is_empty()
     }
@@ -313,3 +325,13 @@ mod integration_tests {
 // pub fn conforms_to_schema(&self, schema: &Schema) -> bool {
 //         todo!()
 //     }
+
+#[derive(Debug, Clone, PartialEq)]
+struct TupleMeta {
+    ts: i64,
+    is_deleted: bool,
+}
+
+impl TupleMeta {
+    // TODO: impl methods and functionality
+}

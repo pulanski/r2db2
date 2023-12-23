@@ -1,7 +1,9 @@
 use crate::middleware::trace::LoggingMiddleware;
 use crate::middleware::{MiddlewareStack, MiddlewareStackRef};
-use crate::protocol::handler::{ConnectionHandler, Protocol};
+use crate::protocol::handler::ConnectionHandler;
+// use crate::protocol::message::{Message, MessageKind};
 use crate::protocol::message::{Message, MessageKind};
+use crate::protocol::Protocol;
 use anyhow::{anyhow, Context, Result};
 use axum::{routing::get, Router};
 use dashmap::DashMap;
@@ -12,14 +14,16 @@ use rustc_hash::FxHasher;
 use std::env;
 use std::hash::{Hash, Hasher};
 use std::net::SocketAddr;
+use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 use std::time::Duration;
 use sysinfo::System;
+use thiserror::Error;
 use tokio::io::AsyncWriteExt;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::signal;
-use tokio::sync::{mpsc, Mutex};
-use tracing::{debug, error, info, instrument};
+use tokio::sync::{mpsc, Mutex, Semaphore};
+use tracing::{debug, error, info, trace, warn};
 use typed_builder::TypedBuilder;
 // use metrics::{counter, gauge, register_counter, register_gauge, register_histogram, Histogram, HistogramOpts, HistogramTimer, HistogramVec, Opts, Registry};
 use metrics::manager::{MetricsManager, MetricsManagerRef, MetricsServerError};
@@ -27,19 +31,49 @@ use metrics::manager::{MetricsManager, MetricsManagerRef, MetricsServerError};
 /// Unique identifier for each connection
 pub type ConnectionId = String;
 
+/// A reference-counted [`Semaphore`] handle that can be shared across threads.
+pub type SemaphoreRef = Arc<Semaphore>;
+
+#[derive(Error, Debug)]
+pub enum ServerError {
+    #[error("Connection pool is full. Max connections: {0}")]
+    ConnectionPoolFull(usize),
+}
+
+///`DbServer` represents a database server with network capabilities.
+/// It manages incoming TCP connections, handles client requests,
+/// and orchestrates middleware and metrics collection.
 #[derive(Debug, TypedBuilder)]
 pub struct DbServer {
     server_address: SocketAddr,
-    connections: Arc<DashMap<ConnectionId, mpsc::Sender<TcpStream>>>,
     driver: DriverRef,
     middleware_stack: MiddlewareStackRef,
     metrics_manager: MetricsManagerRef,
+    connections: Arc<DashMap<ConnectionId, bool>>, //  Stores a flag indicating whether the connection is active
+    conn_pool: SemaphoreRef,                       // Semaphore to limit active connections
 }
 
+// conn_pool: (mpsc::Sender<()>, mpsc::Receiver<()>), // used for query throttling (max concurrent queries)
+// query_throttle: (mpsc::Sender<()>, mpsc::Receiver<()>), // used for connection pooling (max concurrent connections)
+// total_connections: Arc<AtomicUsize>,
+// active_connections: Arc<AtomicUsize>,
+
 impl DbServer {
-    /// Start a new server instance with the given address and
-    /// middleware stack.
-    pub fn new(server_address: SocketAddr, mut middleware_stack: MiddlewareStack) -> Self {
+    /// Creates a new instance of `DbServer`.
+    ///
+    /// Arguments:
+    /// - `server_address`: The IP address and port for the server to listen on.
+    /// - `middleware_stack`: Middleware components for processing requests.
+    /// - `max_transactions`: Maximum number of concurrent transactions the server can handle.
+    /// - `max_connections`: Maximum number of concurrent connections the server can handle.
+    ///
+    /// Returns a new `DbServer` instance.
+    pub fn new(
+        server_address: SocketAddr,
+        mut middleware_stack: MiddlewareStack,
+        max_transactions: usize,
+        max_connections: usize,
+    ) -> Self {
         // By default, we use the logging middleware
         middleware_stack.add_middleware(LoggingMiddleware::new());
 
@@ -56,6 +90,25 @@ impl DbServer {
                 .build(),
         );
 
+        // let conn_pool = mpsc::channel(max_connections); // Each unit `()` represents an available connection
+        // let query_throttle = mpsc::channel(max_transactions); // Each unit `()` represents an available transaction slot
+
+        // // Populate the connection pool
+        // for _ in 0..max_connections {
+        //     conn_pool
+        //         .0
+        //         .try_send(())
+        //         .expect("Failed to populate connection pool");
+        // }
+
+        // // Populate the query throttle
+        // for _ in 0..max_transactions {
+        //     query_throttle
+        //         .0
+        //         .try_send(())
+        //         .expect("Failed to populate query throttle");
+        // }
+
         DbServer::builder()
             .server_address(server_address)
             .connections(Arc::new(DashMap::new()))
@@ -64,37 +117,128 @@ impl DbServer {
             ))
             .middleware_stack(Arc::new(middleware_stack))
             .metrics_manager(Arc::new(metrics_manager))
+            .conn_pool(Arc::new(Semaphore::new(max_connections)))
             .build()
     }
 
     /// Accept incoming connections and spawn a new connection handler
     /// for each one.
-    pub async fn accept_connections(&self, listener: TcpListener) -> Result<()> {
+
+    // pub async fn accept_connections(&mut self, listener: TcpListener) -> Result<()> {
+    //     while let Ok((mut socket, addr)) = listener.accept().await {
+    //         info!(target: "DbServer::accept_connections", "Accepting new connection from {}", addr);
+
+    //         // Increment the total number of connections
+    //         self.total_connections
+    //             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+
+    //         // Try to acquire a permit from the connection pool
+    //         match self.conn_pool.1.try_recv() {
+    //             Ok(_) => {
+    //                 // Increment the number of active connections
+    //                 self.active_connections
+    //                     .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+
+    //                 info!(target: "DbServer::accept_connections", "Connection accepted from {} (active connections: {})", addr, self.active_connections.load(std::sync::atomic::Ordering::SeqCst));
+
+    //                 let (_, rx) = mpsc::channel(1); // Create a channel for communication with the connection handler
+
+    //                 // Successfully acquired a permit, proceed with handling the connection
+    //                 let mut connection_handler = ConnectionHandler::new(
+    //                     socket,
+    //                     rx,
+    //                     self.driver.clone(),
+    //                     self.connections.clone(),
+    //                     self.middleware_stack.clone(),
+    //                     self.conn_pool.0.clone(), // Pass the sender to release the permit
+    //                     self.query_throttle.0.clone(), // Pass the sender to release the permit
+    //                 );
+
+    //                 let active_connections = self.active_connections.clone();
+
+    //                 tokio::spawn(async move {
+    //                     if let Err(e) = connection_handler.handle_connection().await {
+    //                         error!("Error handling connection: {:?}", e);
+    //                     }
+
+    //                     // Decrement the number of active connections
+    //                     active_connections.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+    //                 });
+    //             }
+    //             Err(_) => {
+    //                 // Connection pool is full, handle accordingly
+    //                 warn!(target: "DbServer::accept_connections", "Connection pool is full, rejecting connection from {}", addr);
+    //                 // Send a response to the client before closing the socket
+    //                 let response = Message::error_response("Connection pool is full".to_string());
+
+    //                 Protocol::send_message(&mut socket, response).await?;
+
+    //                 // Close the socket
+    //                 socket.shutdown().await?;
+    //             }
+    //         }
+    //     }
+
+    //     Ok(())
+    // }
+
+    pub async fn accept_connections(&mut self, listener: TcpListener) -> Result<()> {
         while let Ok((socket, addr)) = listener.accept().await {
-            let connection_id = generate_connection_id(&addr); // Generate a unique ID for the connection
-            let (tx, rx) = mpsc::channel(1); // Create a channel for communication with the connection handler
+            // Update connection tracking
+            let conn_id = generate_connection_id(&addr);
 
-            self.connections.insert(connection_id.clone(), tx);
+            let permit = self
+                .conn_pool
+                .clone()
+                .acquire_owned()
+                .await
+                .expect("Failed to acquire semaphore permit");
 
+            // store a flag indicating the connection is active
+            self.connections.insert(conn_id.clone(), true);
+            let connections = self.connections.clone();
+            let conn_pool = self.conn_pool.clone();
+
+            // filter to only active connections (flag is true)
+            debug!(
+                "Currently active connections: {}",
+                connections.iter().filter(|entry| *entry.value()).count()
+            );
+
+            let (_, rx) = mpsc::channel(1); // Create a channel for communication with the connection handler
+
+            // Successfully acquired a permit, proceed with handling the connection
             let mut connection_handler = ConnectionHandler::new(
                 socket,
                 rx,
                 self.driver.clone(),
                 self.connections.clone(),
                 self.middleware_stack.clone(),
+                // self.conn_pool.0.clone(), // Pass the sender to release the permit
+                // self.query_throttle.0.clone(), // Pass the sender to release the permit
             );
 
             tokio::spawn(async move {
                 if let Err(e) = connection_handler.handle_connection().await {
-                    error!("Error in connection {}: {:?}", connection_id, e);
+                    error!("Error handling connection: {:?}", e);
                 }
+
+                // Release resources
+                info!("Releasing connection pool permit for client {}", addr);
+                debug!(
+                    "Connection pool permits available: {}",
+                    conn_pool.available_permits()
+                );
+
+                connections.remove(&conn_id);
+                drop(permit);
             });
         }
 
         Ok(())
     }
 
-    pub async fn run(&self) -> Result<()> {
+    pub async fn run(&mut self) -> Result<()> {
         // TODO: Make this configurable via CLI args
         let mut current_port = self.server_address.port();
         let max_retries = env::var("MAX_PORT_RETRIES")
@@ -225,6 +369,27 @@ impl DbServer {
                 .expect("Failed to start metrics server");
         });
     }
+
+    pub async fn start_metrics_logging(&mut self) {
+        // let active_connections = self.active_connections.clone();
+
+        let wait = 15;
+        trace!("Starting metrics logging every {} seconds", wait);
+
+        tokio::spawn(async move {
+            let mut delay = tokio::time::interval(Duration::from_secs(wait));
+
+            loop {
+                // Current connection pool size
+                // let pool_size = active_connections.load(std::sync::atomic::Ordering::SeqCst);
+                info!("Current active connections in pool: TODO:");
+                // info!("Current active connections in pool: TODO:{}", pool_size);
+                // info!(%pool_size, "Current active connections in pool");
+
+                delay.tick().await;
+            }
+        });
+    }
 }
 
 pub fn generate_connection_id(addr: &SocketAddr) -> ConnectionId {
@@ -232,38 +397,4 @@ pub fn generate_connection_id(addr: &SocketAddr) -> ConnectionId {
     let mut hasher = FxHasher::default();
     format!("{}:{}", addr.ip(), addr.port()).hash(&mut hasher);
     hasher.finish().to_string()
-}
-
-#[tracing::instrument(skip(stream))]
-async fn handle_client_request(stream: &mut TcpStream) -> Result<()> {
-    debug!("Handling client request");
-    while let Some(message) = Protocol::parse_incoming(stream).await? {
-        match message.kind() {
-            MessageKind::StartupMessage => {
-                let response = Message::serialize_authentication_ok();
-                stream
-                    .write_all(&response)
-                    .await
-                    .context("Failed to send authentication response to server")?;
-            }
-            MessageKind::QueryMessage => {
-                let response = Message::serialize_query_response();
-                stream
-                    .write_all(&response)
-                    .await
-                    .context("Failed to send query response to server")?;
-            }
-            MessageKind::TerminationMessage => {
-                info!("Termination request received. Closing connection.");
-                return Ok(());
-            }
-            _ => {
-                let error_response =
-                    Message::error_response("Unsupported message type".to_string());
-                Protocol::send_message(stream, error_response).await?;
-            }
-        }
-    }
-
-    Ok(())
 }

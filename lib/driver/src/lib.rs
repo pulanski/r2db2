@@ -84,7 +84,7 @@ impl Driver {
         let buffer_pool_manager = Arc::new(BufferPoolManager::new_with_size(
             ReplacementPolicy::LRU,
             disk_manager.clone(),
-            10,
+            100,
         ));
         info!(
             "Buffer pool manager initialized in {:?}",

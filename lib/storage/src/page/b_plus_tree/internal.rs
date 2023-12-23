@@ -265,17 +265,6 @@ mod tests {
         assert_eq!(*page.child_at(1).unwrap(), 20);
     }
 
-    // #[test]
-    // fn test_insert_and_split() {
-    //     let mut page = BPlusTreeInternalPage::new(2);
-    //     assert!(page.set_key_at(1, 10).is_ok());
-    //     assert!(page.set_child_at(1, 20).is_ok());
-
-    //     let new_sibling = page.insert_and_split(15, 30).unwrap().unwrap();
-    //     assert_eq!(new_sibling.keys.len(), 1);
-    //     assert_eq!(new_sibling.children.len(), 2);
-    //     // More assertions to verify the state after splitting
-    // }
     #[test]
     #[ignore = "Not implemented yet"]
     fn test_insert_and_split() {
@@ -292,7 +281,7 @@ mod tests {
         assert_eq!(new_sibling.keys.len(), 1);
         assert_eq!(new_sibling.children.len(), 2);
 
-        // Check specific key and child values if necessary
+        // TODO: Check specific key and child values
     }
 
     #[test]
@@ -304,6 +293,4 @@ mod tests {
         let merge_result = page.delete_and_merge(&10).unwrap();
         // Assertions to verify the state after deletion and potential merging
     }
-
-    // Additional tests for edge cases and specific scenarios...
 }

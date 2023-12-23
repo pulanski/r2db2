@@ -61,6 +61,16 @@ pub struct ServeArgs {
     #[arg(short, long, default_value = "true")] // TODO: Change to false when system is more mature
     #[getset(get = "pub")]
     metrics: bool,
+
+    /// Maximum number of concurrent transactions to allow
+    #[arg(short = 't', long, default_value_t = 20)]
+    #[getset(get = "pub")]
+    max_txns: usize,
+
+    /// Maximum number of concurrent connections to allow
+    #[arg(short = 'c', long, default_value_t = 20)]
+    #[getset(get = "pub")]
+    max_connections: usize,
 }
 
 #[derive(ValueEnum, Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]

@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+#![allow(dead_code, unused_variables)]
 
 pub mod disk;
 pub mod index;
@@ -9,3 +9,4 @@ pub mod table;
 
 pub use disk::*;
 pub use page::*;
+pub use table::*;
