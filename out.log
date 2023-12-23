@@ -1,0 +1,624 @@
+[2m2023-12-23T07:07:01.131150Z[0m [35mTRACE[0m [2mr2db2[0m[2m:[0m Parsed CLI arguments in 1.25ms [3margs[0m[2m=[0mCli { command: Some(Sql(SqlArgs { command: Some("SELECT department, AVG(salary) AS average_salary FROM testdata/employee.csv GROUP BY department;"), db_path: None })) }
+[2m2023-12-23T07:07:01.131315Z[0m [32m INFO[0m [2mr2db2[0m[2m:[0m Executing SQL command
+[2m2023-12-23T07:07:01.131477Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m [2mdriver[0m[2m:[0m Starting driver initialization
+[2m2023-12-23T07:07:01.131582Z[0m [32m INFO[0m [1mhandle_sql_command[0m[2m:[0m [2mstorage::disk::manager[0m[2m:[0m Initializing storage manager for `test.db` with log file `test.db.log`
+[2m2023-12-23T07:07:01.131686Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m [2mstorage::disk::manager[0m[2m:[0m Database file test.db exists. Opening the existing database file
+[2m2023-12-23T07:07:01.131780Z[0m [32m INFO[0m [1mhandle_sql_command[0m[2m:[0m [2mdriver[0m[2m:[0m Disk manager initialized in 289.959µs
+[2m2023-12-23T07:07:01.131896Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mnew[0m[2m:[0m [2mstorage::disk::scheduler[0m[2m:[0m Spawning DiskScheduler worker task
+[2m2023-12-23T07:07:01.132056Z[0m [35mTRACE[0m [2mstorage::disk::scheduler[0m[2m:[0m DiskScheduler worker started
+[2m2023-12-23T07:07:01.132198Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m [2mbuffer::manager[0m[2m:[0m Initializing buffer pool with size 100
+[2m2023-12-23T07:07:01.134468Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m [2mbuffer::replacer::lru[0m[2m:[0m Creating a new LRUReplacer with capacity 100
+[2m2023-12-23T07:07:01.134483Z[0m [32m INFO[0m [1mhandle_sql_command[0m[2m:[0m [2mdriver[0m[2m:[0m Buffer pool manager initialized in 2.69325ms
+[2m2023-12-23T07:07:01.141345Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mexecution[0m[2m:[0m Rewritten query: SELECT department, AVG(salary) AS average_salary FROM csv_table GROUP BY department;
+[2m2023-12-23T07:07:01.141433Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mexecution[0m[2m:[0m File path: testdata/employee.csv
+[2m2023-12-23T07:07:01.164842Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m parsing expr    
+[2m2023-12-23T07:07:01.164952Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m prefix: Identifier(Ident { value: "department", quote_style: None })    
+[2m2023-12-23T07:07:01.164999Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m get_next_precedence() TokenWithLocation { token: Comma, location: Location { line: 0, column: 0 } }    
+[2m2023-12-23T07:07:01.165010Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m 0: , 1: AVG 2: (    
+[2m2023-12-23T07:07:01.165020Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m next precedence: 0    
+[2m2023-12-23T07:07:01.165056Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m parsing expr    
+[2m2023-12-23T07:07:01.165086Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m parsing expr    
+[2m2023-12-23T07:07:01.165099Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m prefix: Identifier(Ident { value: "salary", quote_style: None })    
+[2m2023-12-23T07:07:01.165108Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m get_next_precedence() TokenWithLocation { token: RParen, location: Location { line: 0, column: 0 } }    
+[2m2023-12-23T07:07:01.165130Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m 0: ) 1: AS 2: average_salary    
+[2m2023-12-23T07:07:01.165138Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m next precedence: 0    
+[2m2023-12-23T07:07:01.165171Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m prefix: Function(Function { name: ObjectName([Ident { value: "AVG", quote_style: None }]), args: [Unnamed(Expr(Identifier(Ident { value: "salary", quote_style: None })))], filter: None, null_treatment: None, over: None, distinct: false, special: false, order_by: [] })    
+[2m2023-12-23T07:07:01.165237Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m get_next_precedence() TokenWithLocation { token: Word(Word { value: "AS", quote_style: None, keyword: AS }), location: Location { line: 0, column: 0 } }    
+[2m2023-12-23T07:07:01.165247Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m 0: AS 1: average_salary 2: FROM    
+[2m2023-12-23T07:07:01.165255Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m next precedence: 0    
+[2m2023-12-23T07:07:01.165303Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m parsing expr    
+[2m2023-12-23T07:07:01.165314Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m prefix: Identifier(Ident { value: "department", quote_style: None })    
+[2m2023-12-23T07:07:01.165323Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m get_next_precedence() TokenWithLocation { token: SemiColon, location: Location { line: 0, column: 0 } }    
+[2m2023-12-23T07:07:01.165331Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m 0: ; 1: EOF 2: EOF    
+[2m2023-12-23T07:07:01.165339Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m next precedence: 0    
+[2m2023-12-23T07:07:01.168811Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'average_salary'...    
+[2m2023-12-23T07:07:01.168876Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.168915Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'average_salary'...    
+[2m2023-12-23T07:07:01.168930Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.168946Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'average_salary'...    
+[2m2023-12-23T07:07:01.168961Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.168977Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'average_salary'...    
+[2m2023-12-23T07:07:01.168991Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.169019Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'average_salary'...    
+[2m2023-12-23T07:07:01.169033Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.169048Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'average_salary'...    
+[2m2023-12-23T07:07:01.169061Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.169076Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'average_salary'...    
+[2m2023-12-23T07:07:01.169090Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.169105Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'average_salary'...    
+[2m2023-12-23T07:07:01.169119Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.169987Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m inline_table_scan:
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(csv_table.salary)]]
+    TableScan: csv_table
+    
+[2m2023-12-23T07:07:01.170031Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m inline_table_scan::
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary [department:Utf8;N, average_salary:Float64;N]
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(csv_table.salary)]] [department:Utf8;N, AVG(csv_table.salary):Float64;N]
+    TableScan: csv_table [id:Int64;N, name:Utf8;N, department:Utf8;N, salary:Int64;N, email:Utf8;N, hire_date:Date32;N, location:Utf8;N, phone_number:Utf8;N, performance_rating:Utf8;N]
+    
+[2m2023-12-23T07:07:01.170164Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.170186Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.170203Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.170218Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.170233Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.170248Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.170272Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.170287Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.170303Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.170619Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m type_coercion:
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]]
+    TableScan: csv_table
+    
+[2m2023-12-23T07:07:01.170643Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m type_coercion::
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary [department:Utf8;N, average_salary:Float64;N]
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]] [department:Utf8;N, AVG(csv_table.salary):Float64;N]
+    TableScan: csv_table [id:Int64;N, name:Utf8;N, department:Utf8;N, salary:Int64;N, email:Utf8;N, hire_date:Date32;N, location:Utf8;N, phone_number:Utf8;N, performance_rating:Utf8;N]
+    
+[2m2023-12-23T07:07:01.170849Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m count_wildcard_rule:
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]]
+    TableScan: csv_table
+    
+[2m2023-12-23T07:07:01.170867Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m count_wildcard_rule::
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary [department:Utf8;N, average_salary:Float64;N]
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]] [department:Utf8;N, AVG(csv_table.salary):Float64;N]
+    TableScan: csv_table [id:Int64;N, name:Utf8;N, department:Utf8;N, salary:Int64;N, email:Utf8;N, hire_date:Date32;N, location:Utf8;N, phone_number:Utf8;N, performance_rating:Utf8;N]
+    
+[2m2023-12-23T07:07:01.170924Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m Final analyzed plan:
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]]
+    TableScan: csv_table
+    
+[2m2023-12-23T07:07:01.170941Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m Final analyzed plan::
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary [department:Utf8;N, average_salary:Float64;N]
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]] [department:Utf8;N, AVG(csv_table.salary):Float64;N]
+    TableScan: csv_table [id:Int64;N, name:Utf8;N, department:Utf8;N, salary:Int64;N, email:Utf8;N, hire_date:Date32;N, location:Utf8;N, phone_number:Utf8;N, performance_rating:Utf8;N]
+    
+[2m2023-12-23T07:07:01.170965Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::analyzer[0m[2m:[0m Analyzer took 1 ms    
+[2m2023-12-23T07:07:01.171062Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m Optimizer input (pass 0):
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]]
+    TableScan: csv_table
+    
+[2m2023-12-23T07:07:01.171080Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m Optimizer input (pass 0)::
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary [department:Utf8;N, average_salary:Float64;N]
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]] [department:Utf8;N, AVG(csv_table.salary):Float64;N]
+    TableScan: csv_table [id:Int64;N, name:Utf8;N, department:Utf8;N, salary:Int64;N, email:Utf8;N, hire_date:Date32;N, location:Utf8;N, phone_number:Utf8;N, performance_rating:Utf8;N]
+    
+[2m2023-12-23T07:07:01.171134Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'eliminate_nested_union' (pass 0)    
+[2m2023-12-23T07:07:01.171724Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m simplify_expressions:
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]]
+    TableScan: csv_table
+    
+[2m2023-12-23T07:07:01.171742Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m simplify_expressions::
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary [department:Utf8;N, average_salary:Float64;N]
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]] [department:Utf8;N, AVG(csv_table.salary):Float64;N]
+    TableScan: csv_table [id:Int64;N, name:Utf8;N, department:Utf8;N, salary:Int64;N, email:Utf8;N, hire_date:Date32;N, location:Utf8;N, phone_number:Utf8;N, performance_rating:Utf8;N]
+    
+[2m2023-12-23T07:07:01.171788Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.171807Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.171821Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.171835Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.171850Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.171864Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.171879Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.171894Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.171909Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.172087Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m unwrap_cast_in_comparison:
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]]
+    TableScan: csv_table
+    
+[2m2023-12-23T07:07:01.172104Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m unwrap_cast_in_comparison::
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary [department:Utf8;N, average_salary:Float64;N]
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]] [department:Utf8;N, AVG(csv_table.salary):Float64;N]
+    TableScan: csv_table [id:Int64;N, name:Utf8;N, department:Utf8;N, salary:Int64;N, email:Utf8;N, hire_date:Date32;N, location:Utf8;N, phone_number:Utf8;N, performance_rating:Utf8;N]
+    
+[2m2023-12-23T07:07:01.172147Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'replace_distinct_aggregate' (pass 0)    
+[2m2023-12-23T07:07:01.172159Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'eliminate_join' (pass 0)    
+[2m2023-12-23T07:07:01.172170Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'decorrelate_predicate_subquery' (pass 0)    
+[2m2023-12-23T07:07:01.172249Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'scalar_subquery_to_join' (pass 0)    
+[2m2023-12-23T07:07:01.172260Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'extract_equijoin_predicate' (pass 0)    
+[2m2023-12-23T07:07:01.172369Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m simplify_expressions:
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]]
+    TableScan: csv_table
+    
+[2m2023-12-23T07:07:01.172387Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m simplify_expressions::
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary [department:Utf8;N, average_salary:Float64;N]
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]] [department:Utf8;N, AVG(csv_table.salary):Float64;N]
+    TableScan: csv_table [id:Int64;N, name:Utf8;N, department:Utf8;N, salary:Int64;N, email:Utf8;N, hire_date:Date32;N, location:Utf8;N, phone_number:Utf8;N, performance_rating:Utf8;N]
+    
+[2m2023-12-23T07:07:01.172415Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'rewrite_disjunctive_predicate' (pass 0)    
+[2m2023-12-23T07:07:01.172487Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'eliminate_duplicated_expr' (pass 0)    
+[2m2023-12-23T07:07:01.172497Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'eliminate_filter' (pass 0)    
+[2m2023-12-23T07:07:01.172510Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'eliminate_cross_join' (pass 0)    
+[2m2023-12-23T07:07:01.172642Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m common_sub_expression_eliminate:
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]]
+    TableScan: csv_table
+    
+[2m2023-12-23T07:07:01.172659Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m common_sub_expression_eliminate::
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary [department:Utf8;N, average_salary:Float64;N]
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]] [department:Utf8;N, AVG(csv_table.salary):Float64;N]
+    TableScan: csv_table [id:Int64;N, name:Utf8;N, department:Utf8;N, salary:Int64;N, email:Utf8;N, hire_date:Date32;N, location:Utf8;N, phone_number:Utf8;N, performance_rating:Utf8;N]
+    
+[2m2023-12-23T07:07:01.172690Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'eliminate_limit' (pass 0)    
+[2m2023-12-23T07:07:01.172702Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'propagate_empty_relation' (pass 0)    
+[2m2023-12-23T07:07:01.172712Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'eliminate_one_union' (pass 0)    
+[2m2023-12-23T07:07:01.172722Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'filter_null_join_keys' (pass 0)    
+[2m2023-12-23T07:07:01.172732Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'eliminate_outer_join' (pass 0)    
+[2m2023-12-23T07:07:01.172743Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'push_down_limit' (pass 0)    
+[2m2023-12-23T07:07:01.172764Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'push_down_filter' (pass 0)    
+[2m2023-12-23T07:07:01.172774Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'single_distinct_aggregation_to_group_by' (pass 0)    
+[2m2023-12-23T07:07:01.172881Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m simplify_expressions:
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]]
+    TableScan: csv_table
+    
+[2m2023-12-23T07:07:01.172898Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m simplify_expressions::
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary [department:Utf8;N, average_salary:Float64;N]
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]] [department:Utf8;N, AVG(csv_table.salary):Float64;N]
+    TableScan: csv_table [id:Int64;N, name:Utf8;N, department:Utf8;N, salary:Int64;N, email:Utf8;N, hire_date:Date32;N, location:Utf8;N, phone_number:Utf8;N, performance_rating:Utf8;N]
+    
+[2m2023-12-23T07:07:01.172937Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.172953Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.172967Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.172981Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.172999Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.173014Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.173029Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.173044Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.173059Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.173179Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m unwrap_cast_in_comparison:
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]]
+    TableScan: csv_table
+    
+[2m2023-12-23T07:07:01.173196Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m unwrap_cast_in_comparison::
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary [department:Utf8;N, average_salary:Float64;N]
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]] [department:Utf8;N, AVG(csv_table.salary):Float64;N]
+    TableScan: csv_table [id:Int64;N, name:Utf8;N, department:Utf8;N, salary:Int64;N, email:Utf8;N, hire_date:Date32;N, location:Utf8;N, phone_number:Utf8;N, performance_rating:Utf8;N]
+    
+[2m2023-12-23T07:07:01.173301Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m common_sub_expression_eliminate:
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]]
+    TableScan: csv_table
+    
+[2m2023-12-23T07:07:01.173318Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m common_sub_expression_eliminate::
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary [department:Utf8;N, average_salary:Float64;N]
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]] [department:Utf8;N, AVG(csv_table.salary):Float64;N]
+    TableScan: csv_table [id:Int64;N, name:Utf8;N, department:Utf8;N, salary:Int64;N, email:Utf8;N, hire_date:Date32;N, location:Utf8;N, phone_number:Utf8;N, performance_rating:Utf8;N]
+    
+[2m2023-12-23T07:07:01.173705Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m optimize_projections:
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]]
+    TableScan: csv_table projection=[department, salary]
+    
+[2m2023-12-23T07:07:01.173728Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m optimize_projections::
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary [department:Utf8;N, average_salary:Float64;N]
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]] [department:Utf8;N, AVG(csv_table.salary):Float64;N]
+    TableScan: csv_table projection=[department, salary] [department:Utf8;N, salary:Int64;N]
+    
+[2m2023-12-23T07:07:01.173763Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m Optimized plan (pass 0):
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]]
+    TableScan: csv_table projection=[department, salary]
+    
+[2m2023-12-23T07:07:01.173781Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m Optimized plan (pass 0)::
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary [department:Utf8;N, average_salary:Float64;N]
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]] [department:Utf8;N, AVG(csv_table.salary):Float64;N]
+    TableScan: csv_table projection=[department, salary] [department:Utf8;N, salary:Int64;N]
+    
+[2m2023-12-23T07:07:01.173834Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m Optimizer input (pass 1):
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]]
+    TableScan: csv_table projection=[department, salary]
+    
+[2m2023-12-23T07:07:01.173854Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m Optimizer input (pass 1)::
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary [department:Utf8;N, average_salary:Float64;N]
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]] [department:Utf8;N, AVG(csv_table.salary):Float64;N]
+    TableScan: csv_table projection=[department, salary] [department:Utf8;N, salary:Int64;N]
+    
+[2m2023-12-23T07:07:01.173885Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'eliminate_nested_union' (pass 1)    
+[2m2023-12-23T07:07:01.174005Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m simplify_expressions:
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]]
+    TableScan: csv_table projection=[department, salary]
+    
+[2m2023-12-23T07:07:01.174024Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m simplify_expressions::
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary [department:Utf8;N, average_salary:Float64;N]
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]] [department:Utf8;N, AVG(csv_table.salary):Float64;N]
+    TableScan: csv_table projection=[department, salary] [department:Utf8;N, salary:Int64;N]
+    
+[2m2023-12-23T07:07:01.174071Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.174090Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.174104Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.174119Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.174134Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.174154Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.174169Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.174184Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.174200Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.174319Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m unwrap_cast_in_comparison:
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]]
+    TableScan: csv_table projection=[department, salary]
+    
+[2m2023-12-23T07:07:01.174340Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m unwrap_cast_in_comparison::
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary [department:Utf8;N, average_salary:Float64;N]
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]] [department:Utf8;N, AVG(csv_table.salary):Float64;N]
+    TableScan: csv_table projection=[department, salary] [department:Utf8;N, salary:Int64;N]
+    
+[2m2023-12-23T07:07:01.174367Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'replace_distinct_aggregate' (pass 1)    
+[2m2023-12-23T07:07:01.174379Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'eliminate_join' (pass 1)    
+[2m2023-12-23T07:07:01.174390Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'decorrelate_predicate_subquery' (pass 1)    
+[2m2023-12-23T07:07:01.174410Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'scalar_subquery_to_join' (pass 1)    
+[2m2023-12-23T07:07:01.174421Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'extract_equijoin_predicate' (pass 1)    
+[2m2023-12-23T07:07:01.174527Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m simplify_expressions:
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]]
+    TableScan: csv_table projection=[department, salary]
+    
+[2m2023-12-23T07:07:01.174546Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m simplify_expressions::
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary [department:Utf8;N, average_salary:Float64;N]
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]] [department:Utf8;N, AVG(csv_table.salary):Float64;N]
+    TableScan: csv_table projection=[department, salary] [department:Utf8;N, salary:Int64;N]
+    
+[2m2023-12-23T07:07:01.174576Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'rewrite_disjunctive_predicate' (pass 1)    
+[2m2023-12-23T07:07:01.174597Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'eliminate_duplicated_expr' (pass 1)    
+[2m2023-12-23T07:07:01.174608Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'eliminate_filter' (pass 1)    
+[2m2023-12-23T07:07:01.174621Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'eliminate_cross_join' (pass 1)    
+[2m2023-12-23T07:07:01.174721Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m common_sub_expression_eliminate:
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]]
+    TableScan: csv_table projection=[department, salary]
+    
+[2m2023-12-23T07:07:01.174740Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m common_sub_expression_eliminate::
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary [department:Utf8;N, average_salary:Float64;N]
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]] [department:Utf8;N, AVG(csv_table.salary):Float64;N]
+    TableScan: csv_table projection=[department, salary] [department:Utf8;N, salary:Int64;N]
+    
+[2m2023-12-23T07:07:01.174767Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'eliminate_limit' (pass 1)    
+[2m2023-12-23T07:07:01.174781Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'propagate_empty_relation' (pass 1)    
+[2m2023-12-23T07:07:01.174791Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'eliminate_one_union' (pass 1)    
+[2m2023-12-23T07:07:01.174803Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'filter_null_join_keys' (pass 1)    
+[2m2023-12-23T07:07:01.174813Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'eliminate_outer_join' (pass 1)    
+[2m2023-12-23T07:07:01.174823Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'push_down_limit' (pass 1)    
+[2m2023-12-23T07:07:01.174834Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'push_down_filter' (pass 1)    
+[2m2023-12-23T07:07:01.174845Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Plan unchanged by optimizer rule 'single_distinct_aggregation_to_group_by' (pass 1)    
+[2m2023-12-23T07:07:01.174951Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m simplify_expressions:
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]]
+    TableScan: csv_table projection=[department, salary]
+    
+[2m2023-12-23T07:07:01.174975Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m simplify_expressions::
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary [department:Utf8;N, average_salary:Float64;N]
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]] [department:Utf8;N, AVG(csv_table.salary):Float64;N]
+    TableScan: csv_table projection=[department, salary] [department:Utf8;N, salary:Int64;N]
+    
+[2m2023-12-23T07:07:01.175014Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.175033Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.175047Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.175061Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.175076Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.175091Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.175106Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.175121Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.175137Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2msqlparser::parser[0m[2m:[0m Parsing sql 'csv_table'...    
+[2m2023-12-23T07:07:01.175253Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m unwrap_cast_in_comparison:
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]]
+    TableScan: csv_table projection=[department, salary]
+    
+[2m2023-12-23T07:07:01.175271Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m unwrap_cast_in_comparison::
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary [department:Utf8;N, average_salary:Float64;N]
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]] [department:Utf8;N, AVG(csv_table.salary):Float64;N]
+    TableScan: csv_table projection=[department, salary] [department:Utf8;N, salary:Int64;N]
+    
+[2m2023-12-23T07:07:01.175375Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m common_sub_expression_eliminate:
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]]
+    TableScan: csv_table projection=[department, salary]
+    
+[2m2023-12-23T07:07:01.175394Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m common_sub_expression_eliminate::
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary [department:Utf8;N, average_salary:Float64;N]
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]] [department:Utf8;N, AVG(csv_table.salary):Float64;N]
+    TableScan: csv_table projection=[department, salary] [department:Utf8;N, salary:Int64;N]
+    
+[2m2023-12-23T07:07:01.175525Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m optimize_projections:
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]]
+    TableScan: csv_table projection=[department, salary]
+    
+[2m2023-12-23T07:07:01.175544Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m optimize_projections::
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary [department:Utf8;N, average_salary:Float64;N]
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]] [department:Utf8;N, AVG(csv_table.salary):Float64;N]
+    TableScan: csv_table projection=[department, salary] [department:Utf8;N, salary:Int64;N]
+    
+[2m2023-12-23T07:07:01.175567Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m Optimized plan (pass 1):
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]]
+    TableScan: csv_table projection=[department, salary]
+    
+[2m2023-12-23T07:07:01.175589Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m Optimized plan (pass 1)::
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary [department:Utf8;N, average_salary:Float64;N]
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]] [department:Utf8;N, AVG(csv_table.salary):Float64;N]
+    TableScan: csv_table projection=[department, salary] [department:Utf8;N, salary:Int64;N]
+    
+[2m2023-12-23T07:07:01.175630Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m optimizer pass 1 did not make changes    
+[2m2023-12-23T07:07:01.175639Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m Final optimized plan:
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]]
+    TableScan: csv_table projection=[department, salary]
+    
+[2m2023-12-23T07:07:01.175656Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::utils[0m[2m:[0m Final optimized plan::
+Projection: csv_table.department, AVG(csv_table.salary) AS average_salary [department:Utf8;N, average_salary:Float64;N]
+  Aggregate: groupBy=[[csv_table.department]], aggr=[[AVG(CAST(csv_table.salary AS Float64))]] [department:Utf8;N, AVG(csv_table.salary):Float64;N]
+    TableScan: csv_table projection=[department, salary] [department:Utf8;N, salary:Int64;N]
+    
+[2m2023-12-23T07:07:01.175678Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion_optimizer::optimizer[0m[2m:[0m Optimizer took 4 ms    
+[2m2023-12-23T07:07:01.180206Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion::physical_planner[0m[2m:[0m Input physical plan:
+ProjectionExec: expr=[department@0 as department, AVG(csv_table.salary)@1 as average_salary]
+  AggregateExec: mode=FinalPartitioned, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+    AggregateExec: mode=Partial, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+      CsvExec: file_groups={1 group: [[Users/jkersey/Desktop/dev/repos/personal/private/misc/cmudb/r2db2/testdata/employee.csv]]}, projection=[department, salary], has_header=true
+
+    
+[2m2023-12-23T07:07:01.180428Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion::physical_planner[0m[2m:[0m Detailed input physical plan:
+ProjectionExec: expr=[department@0 as department, AVG(csv_table.salary)@1 as average_salary]
+  AggregateExec: mode=FinalPartitioned, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+    AggregateExec: mode=Partial, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+      CsvExec: file_groups={1 group: [[Users/jkersey/Desktop/dev/repos/personal/private/misc/cmudb/r2db2/testdata/employee.csv]]}, projection=[department, salary], has_header=true
+    
+[2m2023-12-23T07:07:01.180534Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion::physical_planner[0m[2m:[0m Optimized physical plan by OutputRequirements:
+OutputRequirementExec
+  ProjectionExec: expr=[department@0 as department, AVG(csv_table.salary)@1 as average_salary]
+    AggregateExec: mode=FinalPartitioned, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+      AggregateExec: mode=Partial, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+        CsvExec: file_groups={1 group: [[Users/jkersey/Desktop/dev/repos/personal/private/misc/cmudb/r2db2/testdata/employee.csv]]}, projection=[department, salary], has_header=true
+
+    
+[2m2023-12-23T07:07:01.180615Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion::physical_planner[0m[2m:[0m Optimized physical plan by aggregate_statistics:
+OutputRequirementExec
+  ProjectionExec: expr=[department@0 as department, AVG(csv_table.salary)@1 as average_salary]
+    AggregateExec: mode=FinalPartitioned, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+      AggregateExec: mode=Partial, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+        CsvExec: file_groups={1 group: [[Users/jkersey/Desktop/dev/repos/personal/private/misc/cmudb/r2db2/testdata/employee.csv]]}, projection=[department, salary], has_header=true
+
+    
+[2m2023-12-23T07:07:01.180694Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion::physical_planner[0m[2m:[0m Optimized physical plan by join_selection:
+OutputRequirementExec
+  ProjectionExec: expr=[department@0 as department, AVG(csv_table.salary)@1 as average_salary]
+    AggregateExec: mode=FinalPartitioned, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+      AggregateExec: mode=Partial, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+        CsvExec: file_groups={1 group: [[Users/jkersey/Desktop/dev/repos/personal/private/misc/cmudb/r2db2/testdata/employee.csv]]}, projection=[department, salary], has_header=true
+
+    
+[2m2023-12-23T07:07:01.180737Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion::physical_planner[0m[2m:[0m Optimized physical plan by LimitedDistinctAggregation:
+OutputRequirementExec
+  ProjectionExec: expr=[department@0 as department, AVG(csv_table.salary)@1 as average_salary]
+    AggregateExec: mode=FinalPartitioned, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+      AggregateExec: mode=Partial, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+        CsvExec: file_groups={1 group: [[Users/jkersey/Desktop/dev/repos/personal/private/misc/cmudb/r2db2/testdata/employee.csv]]}, projection=[department, salary], has_header=true
+
+    
+[2m2023-12-23T07:07:01.181421Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion::physical_planner[0m[2m:[0m Optimized physical plan by EnforceDistribution:
+OutputRequirementExec
+  ProjectionExec: expr=[department@0 as department, AVG(csv_table.salary)@1 as average_salary]
+    AggregateExec: mode=FinalPartitioned, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+      RepartitionExec: partitioning=Hash([department@0], 10), input_partitions=10
+        AggregateExec: mode=Partial, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+          RepartitionExec: partitioning=RoundRobinBatch(10), input_partitions=1
+            CsvExec: file_groups={1 group: [[Users/jkersey/Desktop/dev/repos/personal/private/misc/cmudb/r2db2/testdata/employee.csv]]}, projection=[department, salary], has_header=true
+
+    
+[2m2023-12-23T07:07:01.181492Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion::physical_planner[0m[2m:[0m Optimized physical plan by CombinePartialFinalAggregate:
+OutputRequirementExec
+  ProjectionExec: expr=[department@0 as department, AVG(csv_table.salary)@1 as average_salary]
+    AggregateExec: mode=FinalPartitioned, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+      RepartitionExec: partitioning=Hash([department@0], 10), input_partitions=10
+        AggregateExec: mode=Partial, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+          RepartitionExec: partitioning=RoundRobinBatch(10), input_partitions=1
+            CsvExec: file_groups={1 group: [[Users/jkersey/Desktop/dev/repos/personal/private/misc/cmudb/r2db2/testdata/employee.csv]]}, projection=[department, salary], has_header=true
+
+    
+[2m2023-12-23T07:07:01.181838Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion::physical_planner[0m[2m:[0m Optimized physical plan by EnforceSorting:
+OutputRequirementExec
+  ProjectionExec: expr=[department@0 as department, AVG(csv_table.salary)@1 as average_salary]
+    AggregateExec: mode=FinalPartitioned, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+      RepartitionExec: partitioning=Hash([department@0], 10), input_partitions=10
+        AggregateExec: mode=Partial, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+          RepartitionExec: partitioning=RoundRobinBatch(10), input_partitions=1
+            CsvExec: file_groups={1 group: [[Users/jkersey/Desktop/dev/repos/personal/private/misc/cmudb/r2db2/testdata/employee.csv]]}, projection=[department, salary], has_header=true
+
+    
+[2m2023-12-23T07:07:01.181967Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion::physical_planner[0m[2m:[0m Optimized physical plan by coalesce_batches:
+OutputRequirementExec
+  ProjectionExec: expr=[department@0 as department, AVG(csv_table.salary)@1 as average_salary]
+    AggregateExec: mode=FinalPartitioned, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+      CoalesceBatchesExec: target_batch_size=8192
+        RepartitionExec: partitioning=Hash([department@0], 10), input_partitions=10
+          AggregateExec: mode=Partial, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+            RepartitionExec: partitioning=RoundRobinBatch(10), input_partitions=1
+              CsvExec: file_groups={1 group: [[Users/jkersey/Desktop/dev/repos/personal/private/misc/cmudb/r2db2/testdata/employee.csv]]}, projection=[department, salary], has_header=true
+
+    
+[2m2023-12-23T07:07:01.182003Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion::physical_planner[0m[2m:[0m Optimized physical plan by OutputRequirements:
+ProjectionExec: expr=[department@0 as department, AVG(csv_table.salary)@1 as average_salary]
+  AggregateExec: mode=FinalPartitioned, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+    CoalesceBatchesExec: target_batch_size=8192
+      RepartitionExec: partitioning=Hash([department@0], 10), input_partitions=10
+        AggregateExec: mode=Partial, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+          RepartitionExec: partitioning=RoundRobinBatch(10), input_partitions=1
+            CsvExec: file_groups={1 group: [[Users/jkersey/Desktop/dev/repos/personal/private/misc/cmudb/r2db2/testdata/employee.csv]]}, projection=[department, salary], has_header=true
+
+    
+[2m2023-12-23T07:07:01.182048Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion::physical_planner[0m[2m:[0m Optimized physical plan by PipelineChecker:
+ProjectionExec: expr=[department@0 as department, AVG(csv_table.salary)@1 as average_salary]
+  AggregateExec: mode=FinalPartitioned, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+    CoalesceBatchesExec: target_batch_size=8192
+      RepartitionExec: partitioning=Hash([department@0], 10), input_partitions=10
+        AggregateExec: mode=Partial, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+          RepartitionExec: partitioning=RoundRobinBatch(10), input_partitions=1
+            CsvExec: file_groups={1 group: [[Users/jkersey/Desktop/dev/repos/personal/private/misc/cmudb/r2db2/testdata/employee.csv]]}, projection=[department, salary], has_header=true
+
+    
+[2m2023-12-23T07:07:01.182083Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion::physical_planner[0m[2m:[0m Optimized physical plan by LimitAggregation:
+ProjectionExec: expr=[department@0 as department, AVG(csv_table.salary)@1 as average_salary]
+  AggregateExec: mode=FinalPartitioned, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+    CoalesceBatchesExec: target_batch_size=8192
+      RepartitionExec: partitioning=Hash([department@0], 10), input_partitions=10
+        AggregateExec: mode=Partial, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+          RepartitionExec: partitioning=RoundRobinBatch(10), input_partitions=1
+            CsvExec: file_groups={1 group: [[Users/jkersey/Desktop/dev/repos/personal/private/misc/cmudb/r2db2/testdata/employee.csv]]}, projection=[department, salary], has_header=true
+
+    
+[2m2023-12-23T07:07:01.182118Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion::physical_planner[0m[2m:[0m Optimized physical plan by ProjectionPushdown:
+ProjectionExec: expr=[department@0 as department, AVG(csv_table.salary)@1 as average_salary]
+  AggregateExec: mode=FinalPartitioned, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+    CoalesceBatchesExec: target_batch_size=8192
+      RepartitionExec: partitioning=Hash([department@0], 10), input_partitions=10
+        AggregateExec: mode=Partial, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+          RepartitionExec: partitioning=RoundRobinBatch(10), input_partitions=1
+            CsvExec: file_groups={1 group: [[Users/jkersey/Desktop/dev/repos/personal/private/misc/cmudb/r2db2/testdata/employee.csv]]}, projection=[department, salary], has_header=true
+
+    
+[2m2023-12-23T07:07:01.182143Z[0m [34mDEBUG[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion::physical_planner[0m[2m:[0m Optimized physical plan:
+ProjectionExec: expr=[department@0 as department, AVG(csv_table.salary)@1 as average_salary]
+  AggregateExec: mode=FinalPartitioned, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+    CoalesceBatchesExec: target_batch_size=8192
+      RepartitionExec: partitioning=Hash([department@0], 10), input_partitions=10
+        AggregateExec: mode=Partial, gby=[department@0 as department], aggr=[AVG(csv_table.salary)]
+          RepartitionExec: partitioning=RoundRobinBatch(10), input_partitions=1
+            CsvExec: file_groups={1 group: [[Users/jkersey/Desktop/dev/repos/personal/private/misc/cmudb/r2db2/testdata/employee.csv]]}, projection=[department, salary], has_header=true
+
+    
+[2m2023-12-23T07:07:01.182168Z[0m [35mTRACE[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdatafusion::physical_planner[0m[2m:[0m Detailed optimized physical plan:
+ProjectionExec { expr: [(Column { name: "department", index: 0 }, "department"), (Column { name: "AVG(csv_table.salary)", index: 1 }, "average_salary")], schema: Schema { fields: [Field { name: "department", data_type: Utf8, nullable: true, dict_id: 0, dict_is_ordered: false, metadata: {} }, Field { name: "average_salary", data_type: Float64, nullable: true, dict_id: 0, dict_is_ordered: false, metadata: {} }], metadata: {} }, input: AggregateExec { mode: FinalPartitioned, group_by: PhysicalGroupBy { expr: [(Column { name: "department", index: 0 }, "department")], null_expr: [], groups: [[false]] }, aggr_expr: [Avg { name: "AVG(csv_table.salary)", expr: CastExpr { expr: Column { name: "salary", index: 1 }, cast_type: Float64, cast_options: CastOptions { safe: false, format_options: FormatOptions { safe: true, null: "", date_format: None, datetime_format: None, timestamp_format: None, timestamp_tz_format: None, time_format: None, duration_format: Pretty } } }, input_data_type: Float64, result_data_type: Float64 }], filter_expr: [None], order_by_expr: [None], limit: None, input: CoalesceBatchesExec { input: RepartitionExec { input: AggregateExec { mode: Partial, group_by: PhysicalGroupBy { expr: [(Column { name: "department", index: 0 }, "department")], null_expr: [], groups: [[false]] }, aggr_expr: [Avg { name: "AVG(csv_table.salary)", expr: CastExpr { expr: Column { name: "salary", index: 1 }, cast_type: Float64, cast_options: CastOptions { safe: false, format_options: FormatOptions { safe: true, null: "", date_format: None, datetime_format: None, timestamp_format: None, timestamp_tz_format: None, time_format: None, duration_format: Pretty } } }, input_data_type: Float64, result_data_type: Float64 }], filter_expr: [None], order_by_expr: [None], limit: None, input: RepartitionExec { input: CsvExec { base_config: object_store_url=ObjectStoreUrl { url: Url { scheme: "file", cannot_be_a_base: false, username: "", password: None, host: None, port: None, path: "/", query: None, fragment: None } }, statistics=Statistics { num_rows: Absent, total_byte_size: Absent, column_statistics: [ColumnStatistics { null_count: Absent, max_value: Absent, min_value: Absent, distinct_count: Absent }, ColumnStatistics { null_count: Absent, max_value: Absent, min_value: Absent, distinct_count: Absent }, ColumnStatistics { null_count: Absent, max_value: Absent, min_value: Absent, distinct_count: Absent }, ColumnStatistics { null_count: Absent, max_value: Absent, min_value: Absent, distinct_count: Absent }, ColumnStatistics { null_count: Absent, max_value: Absent, min_value: Absent, distinct_count: Absent }, ColumnStatistics { null_count: Absent, max_value: Absent, min_value: Absent, distinct_count: Absent }, ColumnStatistics { null_count: Absent, max_value: Absent, min_value: Absent, distinct_count: Absent }, ColumnStatistics { null_count: Absent, max_value: Absent, min_value: Absent, distinct_count: Absent }, ColumnStatistics { null_count: Absent, max_value: Absent, min_value: Absent, distinct_count: Absent }] }, file_groups={1 group: [[Users/jkersey/Desktop/dev/repos/personal/private/misc/cmudb/r2db2/testdata/employee.csv]]}, projection=[department, salary], projected_statistics: Statistics { num_rows: Absent, total_byte_size: Absent, column_statistics: [ColumnStatistics { null_count: Absent, max_value: Absent, min_value: Absent, distinct_count: Absent }, ColumnStatistics { null_count: Absent, max_value: Absent, min_value: Absent, distinct_count: Absent }] }, projected_schema: Schema { fields: [Field { name: "department", data_type: Utf8, nullable: true, dict_id: 0, dict_is_ordered: false, metadata: {} }, Field { name: "salary", data_type: Int64, nullable: true, dict_id: 0, dict_is_ordered: false, metadata: {} }], metadata: {} }, projected_output_ordering: [], has_header: true, delimiter: 44, quote: 34, escape: None, metrics: ExecutionPlanMetricsSet { inner: Mutex { data: MetricsSet { metrics: [] } } }, file_compression_type: FileCompressionType { variant: UNCOMPRESSED } }, partitioning: RoundRobinBatch(10), state: Mutex { data: RepartitionExecState { channels: {}, abort_helper: AbortOnDropMany([]) } }, metrics: ExecutionPlanMetricsSet { inner: Mutex { data: MetricsSet { metrics: [] } } }, preserve_order: false }, original_schema: Schema { fields: [Field { name: "department", data_type: Utf8, nullable: true, dict_id: 0, dict_is_ordered: false, metadata: {} }, Field { name: "AVG(csv_table.salary)[count]", data_type: UInt64, nullable: true, dict_id: 0, dict_is_ordered: false, metadata: {} }, Field { name: "AVG(csv_table.salary)[sum]", data_type: Float64, nullable: true, dict_id: 0, dict_is_ordered: false, metadata: {} }], metadata: {} }, schema: Schema { fields: [Field { name: "department", data_type: Utf8, nullable: true, dict_id: 0, dict_is_ordered: false, metadata: {} }, Field { name: "AVG(csv_table.salary)[count]", data_type: UInt64, nullable: true, dict_id: 0, dict_is_ordered: false, metadata: {} }, Field { name: "AVG(csv_table.salary)[sum]", data_type: Float64, nullable: true, dict_id: 0, dict_is_ordered: false, metadata: {} }], metadata: {} }, input_schema: Schema { fields: [Field { name: "department", data_type: Utf8, nullable: true, dict_id: 0, dict_is_ordered: false, metadata: {} }, Field { name: "salary", data_type: Int64, nullable: true, dict_id: 0, dict_is_ordered: false, metadata: {} }], metadata: {} }, projection_mapping: ProjectionMapping { map: [(Column { name: "department", index: 0 }, Column { name: "department", index: 0 })] }, metrics: ExecutionPlanMetricsSet { inner: Mutex { data: MetricsSet { metrics: [] } } }, required_input_ordering: None, input_order_mode: Linear, output_ordering: None }, partitioning: Hash([Column { name: "department", index: 0 }], 10), state: Mutex { data: RepartitionExecState { channels: {}, abort_helper: AbortOnDropMany([]) } }, metrics: ExecutionPlanMetricsSet { inner: Mutex { data: MetricsSet { metrics: [] } } }, preserve_order: false }, target_batch_size: 8192, metrics: ExecutionPlanMetricsSet { inner: Mutex { data: MetricsSet { metrics: [] } } } }, original_schema: Schema { fields: [Field { name: "department", data_type: Utf8, nullable: true, dict_id: 0, dict_is_ordered: false, metadata: {} }, Field { name: "AVG(csv_table.salary)", data_type: Float64, nullable: true, dict_id: 0, dict_is_ordered: false, metadata: {} }], metadata: {} }, schema: Schema { fields: [Field { name: "department", data_type: Utf8, nullable: true, dict_id: 0, dict_is_ordered: false, metadata: {} }, Field { name: "AVG(csv_table.salary)", data_type: Float64, nullable: true, dict_id: 0, dict_is_ordered: false, metadata: {} }], metadata: {} }, input_schema: Schema { fields: [Field { name: "department", data_type: Utf8, nullable: true, dict_id: 0, dict_is_ordered: false, metadata: {} }, Field { name: "salary", data_type: Int64, nullable: true, dict_id: 0, dict_is_ordered: false, metadata: {} }], metadata: {} }, projection_mapping: ProjectionMapping { map: [(Column { name: "department", index: 0 }, Column { name: "department", index: 0 })] }, metrics: ExecutionPlanMetricsSet { inner: Mutex { data: MetricsSet { metrics: [] } } }, required_input_ordering: None, input_order_mode: Linear, output_ordering: None }, output_ordering: None, projection_mapping: ProjectionMapping { map: [(Column { name: "department", index: 0 }, Column { name: "department", index: 0 }), (Column { name: "AVG(csv_table.salary)", index: 1 }, Column { name: "average_salary", index: 1 })] }, metrics: ExecutionPlanMetricsSet { inner: Mutex { data: MetricsSet { metrics: [] } } } }    
+[2m2023-12-23T07:07:01.182806Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::projection[0m[2m:[0m Start ProjectionExec::execute for partition 3 of context session_id faf6e5df-47c7-4935-ab50-ece644e741a3 and task_id None    
+[2m2023-12-23T07:07:01.182818Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::projection[0m[2m:[0m Start ProjectionExec::execute for partition 0 of context session_id faf6e5df-47c7-4935-ab50-ece644e741a3 and task_id None    
+[2m2023-12-23T07:07:01.182820Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::projection[0m[2m:[0m Start ProjectionExec::execute for partition 4 of context session_id faf6e5df-47c7-4935-ab50-ece644e741a3 and task_id None    
+[2m2023-12-23T07:07:01.182877Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::projection[0m[2m:[0m Start ProjectionExec::execute for partition 7 of context session_id faf6e5df-47c7-4935-ab50-ece644e741a3 and task_id None    
+[2m2023-12-23T07:07:01.182891Z[0m [34mDEBUG[0m [2mdatafusion_physical_plan::aggregates::row_hash[0m[2m:[0m Creating GroupedHashAggregateStream    
+[2m2023-12-23T07:07:01.182825Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::projection[0m[2m:[0m Start ProjectionExec::execute for partition 2 of context session_id faf6e5df-47c7-4935-ab50-ece644e741a3 and task_id None    
+[2m2023-12-23T07:07:01.182830Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::projection[0m[2m:[0m Start ProjectionExec::execute for partition 1 of context session_id faf6e5df-47c7-4935-ab50-ece644e741a3 and task_id None    
+[2m2023-12-23T07:07:01.182920Z[0m [34mDEBUG[0m [2mdatafusion_physical_plan::aggregates::row_hash[0m[2m:[0m Creating GroupedHashAggregateStream    
+[2m2023-12-23T07:07:01.182934Z[0m [34mDEBUG[0m [2mdatafusion_physical_plan::aggregates::row_hash[0m[2m:[0m Creating GroupedHashAggregateStream    
+[2m2023-12-23T07:07:01.182862Z[0m [34mDEBUG[0m [2mdatafusion_physical_plan::aggregates::row_hash[0m[2m:[0m Creating GroupedHashAggregateStream    
+[2m2023-12-23T07:07:01.182956Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Start RepartitionExec::execute for partition: 1    
+[2m2023-12-23T07:07:01.182965Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Start RepartitionExec::execute for partition: 0    
+[2m2023-12-23T07:07:01.182835Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::projection[0m[2m:[0m Start ProjectionExec::execute for partition 5 of context session_id faf6e5df-47c7-4935-ab50-ece644e741a3 and task_id None    
+[2m2023-12-23T07:07:01.182993Z[0m [34mDEBUG[0m [2mdatafusion_physical_plan::aggregates::row_hash[0m[2m:[0m Creating GroupedHashAggregateStream    
+[2m2023-12-23T07:07:01.182900Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::projection[0m[2m:[0m Start ProjectionExec::execute for partition 8 of context session_id faf6e5df-47c7-4935-ab50-ece644e741a3 and task_id None    
+[2m2023-12-23T07:07:01.183022Z[0m [34mDEBUG[0m [2mdatafusion_physical_plan::aggregates::row_hash[0m[2m:[0m Creating GroupedHashAggregateStream    
+[2m2023-12-23T07:07:01.183035Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Start RepartitionExec::execute for partition: 8    
+[2m2023-12-23T07:07:01.182941Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Start RepartitionExec::execute for partition: 2    
+[2m2023-12-23T07:07:01.182893Z[0m [34mDEBUG[0m [2mdatafusion_physical_plan::aggregates::row_hash[0m[2m:[0m Creating GroupedHashAggregateStream    
+[2m2023-12-23T07:07:01.183072Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Start RepartitionExec::execute for partition: 7    
+[2m2023-12-23T07:07:01.182904Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Start RepartitionExec::execute for partition: 4    
+[2m2023-12-23T07:07:01.183004Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Start RepartitionExec::execute for partition: 5    
+[2m2023-12-23T07:07:01.182916Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::projection[0m[2m:[0m Start ProjectionExec::execute for partition 9 of context session_id faf6e5df-47c7-4935-ab50-ece644e741a3 and task_id None    
+[2m2023-12-23T07:07:01.182861Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::projection[0m[2m:[0m Start ProjectionExec::execute for partition 6 of context session_id faf6e5df-47c7-4935-ab50-ece644e741a3 and task_id None    
+[2m2023-12-23T07:07:01.183107Z[0m [34mDEBUG[0m [2mdatafusion_physical_plan::aggregates::row_hash[0m[2m:[0m Creating GroupedHashAggregateStream    
+[2m2023-12-23T07:07:01.183115Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Start RepartitionExec::execute for partition: 9    
+[2m2023-12-23T07:07:01.183114Z[0m [34mDEBUG[0m [2mdatafusion_physical_plan::aggregates::row_hash[0m[2m:[0m Creating GroupedHashAggregateStream    
+[2m2023-12-23T07:07:01.183130Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Start RepartitionExec::execute for partition: 6    
+[2m2023-12-23T07:07:01.182844Z[0m [34mDEBUG[0m [2mdatafusion_physical_plan::aggregates::row_hash[0m[2m:[0m Creating GroupedHashAggregateStream    
+[2m2023-12-23T07:07:01.183146Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Start RepartitionExec::execute for partition: 3    
+[2m2023-12-23T07:07:01.183330Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Before returning stream in RepartitionExec::execute for partition: 1    
+[2m2023-12-23T07:07:01.183361Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Before returning stream in RepartitionExec::execute for partition: 0    
+[2m2023-12-23T07:07:01.183404Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Before returning stream in RepartitionExec::execute for partition: 2    
+[2m2023-12-23T07:07:01.183432Z[0m [34mDEBUG[0m [2mdatafusion_physical_expr::aggregate::average[0m[2m:[0m AvgGroupsAccumulator (arrow_array::types::Float64Type, sum type: Float64) --> Float64    
+[2m2023-12-23T07:07:01.183436Z[0m [34mDEBUG[0m [2mdatafusion_physical_expr::aggregate::average[0m[2m:[0m AvgGroupsAccumulator (arrow_array::types::Float64Type, sum type: Float64) --> Float64    
+[2m2023-12-23T07:07:01.183441Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Before returning stream in RepartitionExec::execute for partition: 8    
+[2m2023-12-23T07:07:01.183432Z[0m [34mDEBUG[0m [2mdatafusion_physical_expr::aggregate::average[0m[2m:[0m AvgGroupsAccumulator (arrow_array::types::Float64Type, sum type: Float64) --> Float64    
+[2m2023-12-23T07:07:01.183472Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Before returning stream in RepartitionExec::execute for partition: 7    
+[2m2023-12-23T07:07:01.183481Z[0m [34mDEBUG[0m [2mdatafusion_physical_expr::aggregate::average[0m[2m:[0m AvgGroupsAccumulator (arrow_array::types::Float64Type, sum type: Float64) --> Float64    
+[2m2023-12-23T07:07:01.183495Z[0m [34mDEBUG[0m [2mdatafusion_physical_expr::aggregate::average[0m[2m:[0m AvgGroupsAccumulator (arrow_array::types::Float64Type, sum type: Float64) --> Float64    
+[2m2023-12-23T07:07:01.183507Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Before returning stream in RepartitionExec::execute for partition: 4    
+[2m2023-12-23T07:07:01.183536Z[0m [34mDEBUG[0m [2mdatafusion_physical_expr::aggregate::average[0m[2m:[0m AvgGroupsAccumulator (arrow_array::types::Float64Type, sum type: Float64) --> Float64    
+[2m2023-12-23T07:07:01.183536Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Before returning stream in RepartitionExec::execute for partition: 5    
+[2m2023-12-23T07:07:01.183576Z[0m [34mDEBUG[0m [2mdatafusion_physical_expr::aggregate::average[0m[2m:[0m AvgGroupsAccumulator (arrow_array::types::Float64Type, sum type: Float64) --> Float64    
+[2m2023-12-23T07:07:01.183627Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Before returning stream in RepartitionExec::execute for partition: 9    
+[2m2023-12-23T07:07:01.183648Z[0m [34mDEBUG[0m [2mdatafusion_physical_expr::aggregate::average[0m[2m:[0m AvgGroupsAccumulator (arrow_array::types::Float64Type, sum type: Float64) --> Float64    
+[2m2023-12-23T07:07:01.183690Z[0m [34mDEBUG[0m [2mdatafusion_physical_plan::aggregates::row_hash[0m[2m:[0m Creating GroupedHashAggregateStream    
+[2m2023-12-23T07:07:01.183698Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Before returning stream in RepartitionExec::execute for partition: 6    
+[2m2023-12-23T07:07:01.183712Z[0m [34mDEBUG[0m [2mdatafusion_physical_plan::aggregates::row_hash[0m[2m:[0m Creating GroupedHashAggregateStream    
+[2m2023-12-23T07:07:01.183721Z[0m [34mDEBUG[0m [2mdatafusion_physical_plan::aggregates::row_hash[0m[2m:[0m Creating GroupedHashAggregateStream    
+[2m2023-12-23T07:07:01.183705Z[0m [34mDEBUG[0m [2mdatafusion_physical_plan::aggregates::row_hash[0m[2m:[0m Creating GroupedHashAggregateStream    
+[2m2023-12-23T07:07:01.183737Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Start RepartitionExec::execute for partition: 1    
+[2m2023-12-23T07:07:01.183748Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Start RepartitionExec::execute for partition: 2    
+[2m2023-12-23T07:07:01.183705Z[0m [34mDEBUG[0m [2mdatafusion_physical_plan::aggregates::row_hash[0m[2m:[0m Creating GroupedHashAggregateStream    
+[2m2023-12-23T07:07:01.183690Z[0m [34mDEBUG[0m [2mdatafusion_physical_plan::aggregates::row_hash[0m[2m:[0m Creating GroupedHashAggregateStream    
+[2m2023-12-23T07:07:01.183703Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Start RepartitionExec::execute for partition: 0    
+[2m2023-12-23T07:07:01.183733Z[0m [34mDEBUG[0m [2mdatafusion_physical_plan::aggregates::row_hash[0m[2m:[0m Creating GroupedHashAggregateStream    
+[2m2023-12-23T07:07:01.183803Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Start RepartitionExec::execute for partition: 5    
+[2m2023-12-23T07:07:01.183806Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Before returning stream in RepartitionExec::execute for partition: 1    
+[2m2023-12-23T07:07:01.183726Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Start RepartitionExec::execute for partition: 9    
+[2m2023-12-23T07:07:01.183843Z[0m [34mDEBUG[0m [2mdatafusion_physical_expr::aggregate::average[0m[2m:[0m AvgGroupsAccumulator (arrow_array::types::Float64Type, sum type: Float64) --> Float64    
+[2m2023-12-23T07:07:01.183733Z[0m [34mDEBUG[0m [2mdatafusion_physical_expr::aggregate::average[0m[2m:[0m AvgGroupsAccumulator (arrow_array::types::Float64Type, sum type: Float64) --> Float64    
+[2m2023-12-23T07:07:01.183783Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Start RepartitionExec::execute for partition: 7    
+[2m2023-12-23T07:07:01.183751Z[0m [34mDEBUG[0m [2mdatafusion_physical_plan::aggregates::row_hash[0m[2m:[0m Creating GroupedHashAggregateStream    
+[2m2023-12-23T07:07:01.183891Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Start RepartitionExec::execute for partition: 6    
+[2m2023-12-23T07:07:01.183839Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Before returning stream in RepartitionExec::execute for partition: 2    
+[2m2023-12-23T07:07:01.183921Z[0m [34mDEBUG[0m [2mdatafusion_physical_plan::aggregates::row_hash[0m[2m:[0m Creating GroupedHashAggregateStream    
+[2m2023-12-23T07:07:01.183936Z[0m [34mDEBUG[0m [2mdatafusion_physical_expr::aggregate::average[0m[2m:[0m AvgGroupsAccumulator (arrow_array::types::Float64Type, sum type: Float64) --> Float64    
+[2m2023-12-23T07:07:01.183939Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Start RepartitionExec::execute for partition: 3    
+[2m2023-12-23T07:07:01.183976Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Before returning stream in RepartitionExec::execute for partition: 0    
+[2m2023-12-23T07:07:01.183980Z[0m [34mDEBUG[0m [2mdatafusion_physical_plan::aggregates::row_hash[0m[2m:[0m Creating GroupedHashAggregateStream    
+[2m2023-12-23T07:07:01.183773Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Start RepartitionExec::execute for partition: 8    
+[2m2023-12-23T07:07:01.183734Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Before returning stream in RepartitionExec::execute for partition: 3    
+[2m2023-12-23T07:07:01.184029Z[0m [34mDEBUG[0m [2mdatafusion_physical_expr::aggregate::average[0m[2m:[0m AvgGroupsAccumulator (arrow_array::types::Float64Type, sum type: Float64) --> Float64    
+[2m2023-12-23T07:07:01.183999Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Start RepartitionExec::execute for partition: 4    
+[2m2023-12-23T07:07:01.183999Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Before returning stream in RepartitionExec::execute for partition: 5    
+[2m2023-12-23T07:07:01.184000Z[0m [34mDEBUG[0m [2mdatafusion_physical_expr::aggregate::average[0m[2m:[0m AvgGroupsAccumulator (arrow_array::types::Float64Type, sum type: Float64) --> Float64    
+[2m2023-12-23T07:07:01.184074Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Before returning stream in RepartitionExec::execute for partition: 9    
+[2m2023-12-23T07:07:01.184079Z[0m [34mDEBUG[0m [2mdatafusion_physical_expr::aggregate::average[0m[2m:[0m AvgGroupsAccumulator (arrow_array::types::Float64Type, sum type: Float64) --> Float64    
+[2m2023-12-23T07:07:01.184090Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Before returning stream in RepartitionExec::execute for partition: 7    
+[2m2023-12-23T07:07:01.184094Z[0m [34mDEBUG[0m [2mdatafusion_physical_expr::aggregate::average[0m[2m:[0m AvgGroupsAccumulator (arrow_array::types::Float64Type, sum type: Float64) --> Float64    
+[2m2023-12-23T07:07:01.184110Z[0m [34mDEBUG[0m [2mdatafusion_physical_expr::aggregate::average[0m[2m:[0m AvgGroupsAccumulator (arrow_array::types::Float64Type, sum type: Float64) --> Float64    
+[2m2023-12-23T07:07:01.184117Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Before returning stream in RepartitionExec::execute for partition: 6    
+[2m2023-12-23T07:07:01.184135Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Before returning stream in RepartitionExec::execute for partition: 3    
+[2m2023-12-23T07:07:01.184136Z[0m [34mDEBUG[0m [2mdatafusion_physical_expr::aggregate::average[0m[2m:[0m AvgGroupsAccumulator (arrow_array::types::Float64Type, sum type: Float64) --> Float64    
+[2m2023-12-23T07:07:01.184160Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Before returning stream in RepartitionExec::execute for partition: 8    
+[2m2023-12-23T07:07:01.184163Z[0m [34mDEBUG[0m [2mdatafusion_physical_expr::aggregate::average[0m[2m:[0m AvgGroupsAccumulator (arrow_array::types::Float64Type, sum type: Float64) --> Float64    
+[2m2023-12-23T07:07:01.184174Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::repartition[0m[2m:[0m Before returning stream in RepartitionExec::execute for partition: 4    
+[2m2023-12-23T07:07:01.184177Z[0m [34mDEBUG[0m [2mdatafusion_physical_expr::aggregate::average[0m[2m:[0m AvgGroupsAccumulator (arrow_array::types::Float64Type, sum type: Float64) --> Float64    
+[2m2023-12-23T07:07:01.184195Z[0m [34mDEBUG[0m [2mdatafusion_physical_expr::aggregate::average[0m[2m:[0m AvgGroupsAccumulator (arrow_array::types::Float64Type, sum type: Float64) --> Float64    
+[2m2023-12-23T07:07:01.188608Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::coalesce_batches[0m[2m:[0m Combined 1 batches containing 1 rows    
+[2m2023-12-23T07:07:01.188633Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::coalesce_batches[0m[2m:[0m Combined 1 batches containing 1 rows    
+[2m2023-12-23T07:07:01.188608Z[0m [35mTRACE[0m [2mdatafusion_physical_plan::coalesce_batches[0m[2m:[0m Combined 1 batches containing 1 rows    
++-------------+--------------------+
+| department  | average_salary     |
++-------------+--------------------+
+| Engineering | 72214.28571428571  |
+| HR          | 51333.333333333336 |
+| Marketing   | 60000.0            |
++-------------+--------------------+
+[2m2023-12-23T07:07:01.189448Z[0m [32m INFO[0m [1mhandle_sql_command[0m[2m:[0m[1mprocess_sql_command[0m[2m:[0m [2mdriver[0m[2m:[0m Query executed successfully
+[2m2023-12-23T07:07:01.189558Z[0m [32m INFO[0m [1mhandle_sql_command[0m[2m:[0m [2mcli::tui[0m[2m:[0m SQL command processing completed
+[2m2023-12-23T07:07:01.189622Z[0m [35mTRACE[0m [2mstorage::disk::scheduler[0m[2m:[0m DiskScheduler worker loop ended

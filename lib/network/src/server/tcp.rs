@@ -14,12 +14,10 @@ use rustc_hash::FxHasher;
 use std::env;
 use std::hash::{Hash, Hasher};
 use std::net::SocketAddr;
-use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 use std::time::Duration;
 use sysinfo::System;
 use thiserror::Error;
-use tokio::io::AsyncWriteExt;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::signal;
 use tokio::sync::{mpsc, Mutex, Semaphore};
@@ -53,11 +51,6 @@ pub struct DbServer {
     conn_pool: SemaphoreRef,                       // Semaphore to limit active connections
 }
 
-// conn_pool: (mpsc::Sender<()>, mpsc::Receiver<()>), // used for query throttling (max concurrent queries)
-// query_throttle: (mpsc::Sender<()>, mpsc::Receiver<()>), // used for connection pooling (max concurrent connections)
-// total_connections: Arc<AtomicUsize>,
-// active_connections: Arc<AtomicUsize>,
-
 impl DbServer {
     /// Creates a new instance of `DbServer`.
     ///
@@ -90,25 +83,6 @@ impl DbServer {
                 .build(),
         );
 
-        // let conn_pool = mpsc::channel(max_connections); // Each unit `()` represents an available connection
-        // let query_throttle = mpsc::channel(max_transactions); // Each unit `()` represents an available transaction slot
-
-        // // Populate the connection pool
-        // for _ in 0..max_connections {
-        //     conn_pool
-        //         .0
-        //         .try_send(())
-        //         .expect("Failed to populate connection pool");
-        // }
-
-        // // Populate the query throttle
-        // for _ in 0..max_transactions {
-        //     query_throttle
-        //         .0
-        //         .try_send(())
-        //         .expect("Failed to populate query throttle");
-        // }
-
         DbServer::builder()
             .server_address(server_address)
             .connections(Arc::new(DashMap::new()))
@@ -123,65 +97,6 @@ impl DbServer {
 
     /// Accept incoming connections and spawn a new connection handler
     /// for each one.
-
-    // pub async fn accept_connections(&mut self, listener: TcpListener) -> Result<()> {
-    //     while let Ok((mut socket, addr)) = listener.accept().await {
-    //         info!(target: "DbServer::accept_connections", "Accepting new connection from {}", addr);
-
-    //         // Increment the total number of connections
-    //         self.total_connections
-    //             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-
-    //         // Try to acquire a permit from the connection pool
-    //         match self.conn_pool.1.try_recv() {
-    //             Ok(_) => {
-    //                 // Increment the number of active connections
-    //                 self.active_connections
-    //                     .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-
-    //                 info!(target: "DbServer::accept_connections", "Connection accepted from {} (active connections: {})", addr, self.active_connections.load(std::sync::atomic::Ordering::SeqCst));
-
-    //                 let (_, rx) = mpsc::channel(1); // Create a channel for communication with the connection handler
-
-    //                 // Successfully acquired a permit, proceed with handling the connection
-    //                 let mut connection_handler = ConnectionHandler::new(
-    //                     socket,
-    //                     rx,
-    //                     self.driver.clone(),
-    //                     self.connections.clone(),
-    //                     self.middleware_stack.clone(),
-    //                     self.conn_pool.0.clone(), // Pass the sender to release the permit
-    //                     self.query_throttle.0.clone(), // Pass the sender to release the permit
-    //                 );
-
-    //                 let active_connections = self.active_connections.clone();
-
-    //                 tokio::spawn(async move {
-    //                     if let Err(e) = connection_handler.handle_connection().await {
-    //                         error!("Error handling connection: {:?}", e);
-    //                     }
-
-    //                     // Decrement the number of active connections
-    //                     active_connections.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
-    //                 });
-    //             }
-    //             Err(_) => {
-    //                 // Connection pool is full, handle accordingly
-    //                 warn!(target: "DbServer::accept_connections", "Connection pool is full, rejecting connection from {}", addr);
-    //                 // Send a response to the client before closing the socket
-    //                 let response = Message::error_response("Connection pool is full".to_string());
-
-    //                 Protocol::send_message(&mut socket, response).await?;
-
-    //                 // Close the socket
-    //                 socket.shutdown().await?;
-    //             }
-    //         }
-    //     }
-
-    //     Ok(())
-    // }
-
     pub async fn accept_connections(&mut self, listener: TcpListener) -> Result<()> {
         while let Ok((socket, addr)) = listener.accept().await {
             // Update connection tracking
@@ -214,8 +129,6 @@ impl DbServer {
                 self.driver.clone(),
                 self.connections.clone(),
                 self.middleware_stack.clone(),
-                // self.conn_pool.0.clone(), // Pass the sender to release the permit
-                // self.query_throttle.0.clone(), // Pass the sender to release the permit
             );
 
             tokio::spawn(async move {

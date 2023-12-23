@@ -11,7 +11,6 @@ pub async fn handle_sql_command(args: &SqlArgs) {
     let driver = Driver::new(&db_path).expect("Failed to create driver");
 
     driver.process_sql_command(args.command().clone()).await;
-    // driver.add_database("test.db".to_owned()).await; // TODO: add support for multiple databases
 
     info!("SQL command processing completed");
 }

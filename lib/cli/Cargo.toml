@@ -21,3 +21,4 @@ tokio = { version = "1.35.0", features = ["full"] }
 anyhow = "1.0.75"
 thiserror = "1.0.50"
 rayon = "1.8.0"
+typed-builder = "0.18.0"

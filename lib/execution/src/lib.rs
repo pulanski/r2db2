@@ -1,229 +1,157 @@
-use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
-use compile::parser::parse_sql;
-use datafusion::datasource::file_format::file_compression_type::FileCompressionType;
+mod experimental;
+
+use compile::parser::{parse_sql, Statement};
+use datafusion_expr::LogicalPlan;
+use regex::Regex;
+// use datafusion::datasource::file_format::file_compression_type::FileCompressionType;
+use core::fmt;
 use datafusion::prelude::*;
-use datafusion_common::config::ConfigOptions;
-use datafusion_common::tree_node::{Transformed, TreeNode};
 use datafusion_common::{plan_err, DataFusionError, Result, ScalarValue};
-use datafusion_expr::{
-    AggregateUDF, Between, Expr, Filter, LogicalPlan, ScalarUDF, TableSource, WindowUDF,
-};
-use datafusion_optimizer::analyzer::{Analyzer, AnalyzerRule};
-use datafusion_optimizer::optimizer::Optimizer;
-use datafusion_optimizer::{utils, OptimizerConfig, OptimizerContext, OptimizerRule};
-use datafusion_sql::planner::{ContextProvider, SqlToRel};
-use datafusion_sql::TableReference;
-use std::any::Any;
-use std::sync::Arc;
-use tracing::instrument;
+use tracing::{debug, instrument, trace};
 
-#[instrument]
-pub async fn process_query(sql: &str) -> Result<()> {
-    // TODO: refactor to allow for querying of data directly from csvs, parquet, etc.
-    let ctx = SessionContext::new();
-    ctx.register_csv("employee", "testdata/employee.csv", CsvReadOptions::new())
-        .await?;
-    let df = ctx
-        .sql("SELECT name, salary FROM employee WHERE salary > 50000 ORDER BY name")
-        .await?;
-    df.show().await?;
-
-    // Parse SQL query
-    let ast = parse_sql(sql)?;
-
-    let context_provider = MyContextProvider::default();
-    let sql_to_rel = SqlToRel::new(&context_provider);
-    let logical_plan = sql_to_rel.sql_statement_to_plan(ast[0].clone())?;
-    println!(
-        "Unoptimized Logical Plan:\n\n{}\n",
-        logical_plan.display_indent()
-    );
-
-    // run the analyzer with our custom rule
-    let config = OptimizerContext::default().with_skip_failing_rules(false);
-    let analyzer = Analyzer::with_rules(vec![Arc::new(MyAnalyzerRule {})]);
-    let analyzed_plan = analyzer.execute_and_check(&logical_plan, config.options(), |_, _| {})?;
-    println!(
-        "Analyzed Logical Plan:\n\n{}\n",
-        analyzed_plan.display_indent()
-    );
-
-    // then run the optimizer with our custom rule
-    let optimizer = Optimizer::with_rules(vec![Arc::new(MyOptimizerRule {})]);
-    let optimized_plan = optimizer.optimize(&analyzed_plan, &config, observe)?;
-    println!(
-        "Optimized Logical Plan:\n\n{}\n",
-        optimized_plan.display_indent()
-    );
-
-    Ok(())
+pub enum FileFormat {
+    CSV,
+    Parquet,
+    ORC,
 }
 
-fn observe(plan: &LogicalPlan, rule: &dyn OptimizerRule) {
-    println!(
-        "After applying rule '{}':\n{}\n",
-        rule.name(),
-        plan.display_indent()
-    )
+pub struct QueryEngine {
+    context: SessionContext,
+    // TODO: Add other fields as necessary,
+    // buffer manager, storage layer, etc.
 }
 
-/// An example analyzer rule that changes Int64 literals to UInt64
-struct MyAnalyzerRule {}
-
-impl AnalyzerRule for MyAnalyzerRule {
-    fn analyze(&self, plan: LogicalPlan, _config: &ConfigOptions) -> Result<LogicalPlan> {
-        Self::analyze_plan(plan)
-    }
-
-    fn name(&self) -> &str {
-        "my_analyzer_rule"
+impl fmt::Debug for QueryEngine {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("QueryEngine").finish()
     }
 }
 
-impl MyAnalyzerRule {
-    fn analyze_plan(plan: LogicalPlan) -> Result<LogicalPlan> {
-        plan.transform(&|plan| {
-            Ok(match plan {
-                LogicalPlan::Filter(filter) => {
-                    let predicate = Self::analyze_expr(filter.predicate.clone())?;
-                    Transformed::Yes(LogicalPlan::Filter(Filter::try_new(
-                        predicate,
-                        filter.input,
-                    )?))
-                }
-                _ => Transformed::No(plan),
-            })
-        })
-    }
-
-    fn analyze_expr(expr: Expr) -> Result<Expr> {
-        expr.transform(&|expr| {
-            // closure is invoked for all sub expressions
-            Ok(match expr {
-                Expr::Literal(ScalarValue::Int64(i)) => {
-                    // transform to UInt64
-                    Transformed::Yes(Expr::Literal(ScalarValue::UInt64(i.map(|i| i as u64))))
-                }
-                _ => Transformed::No(expr),
-            })
-        })
-    }
-}
-
-/// An example optimizer rule that rewrite BETWEEN expression to binary compare expressions
-struct MyOptimizerRule {}
-
-impl OptimizerRule for MyOptimizerRule {
-    fn name(&self) -> &str {
-        "my_optimizer_rule"
-    }
-
-    fn try_optimize(
-        &self,
-        plan: &LogicalPlan,
-        config: &dyn OptimizerConfig,
-    ) -> Result<Option<LogicalPlan>> {
-        // recurse down and optimize children first
-        let optimized_plan = utils::optimize_children(self, plan, config)?;
-        match optimized_plan {
-            Some(LogicalPlan::Filter(filter)) => {
-                let predicate = my_rewrite(filter.predicate.clone())?;
-                Ok(Some(LogicalPlan::Filter(Filter::try_new(
-                    predicate,
-                    filter.input,
-                )?)))
-            }
-            Some(optimized_plan) => Ok(Some(optimized_plan)),
-            None => match plan {
-                LogicalPlan::Filter(filter) => {
-                    let predicate = my_rewrite(filter.predicate.clone())?;
-                    Ok(Some(LogicalPlan::Filter(Filter::try_new(
-                        predicate,
-                        filter.input.clone(),
-                    )?)))
-                }
-                _ => Ok(None),
-            },
+impl QueryEngine {
+    pub fn new() -> Self {
+        QueryEngine {
+            context: SessionContext::new(),
+            // Initialize other components
         }
     }
-}
 
-/// use rewrite_expr to modify the expression tree.
-fn my_rewrite(expr: Expr) -> Result<Expr> {
-    expr.transform(&|expr| {
-        // closure is invoked for all sub expressions
-        Ok(match expr {
-            Expr::Between(Between {
-                expr,
-                negated,
-                low,
-                high,
-            }) => {
-                // unbox
-                let expr: Expr = *expr;
-                let low: Expr = *low;
-                let high: Expr = *high;
-                if negated {
-                    Transformed::Yes(expr.clone().lt(low).or(expr.gt(high)))
-                } else {
-                    Transformed::Yes(expr.clone().gt_eq(low).and(expr.lt_eq(high)))
-                }
-            }
-            _ => Transformed::No(expr),
-        })
-    })
-}
-
-#[derive(Default)]
-struct MyContextProvider {
-    options: ConfigOptions,
-}
-
-impl ContextProvider for MyContextProvider {
-    fn get_table_source(&self, name: TableReference) -> Result<Arc<dyn TableSource>> {
-        if name.table() == "person" {
-            Ok(Arc::new(MyTableSource {
-                schema: Arc::new(Schema::new(vec![
-                    Field::new("name", DataType::Utf8, false),
-                    Field::new("age", DataType::UInt8, false),
-                ])),
-            }))
+    pub async fn execute_query(&self, sql: &str) -> Result<()> {
+        // Determine the type of query (internal database table or external file (CSV, Parquet, etc.))
+        if self.is_external_file_query(sql) {
+            // Delegate to DataFusion engine
+            self.execute_external_file_query(sql).await
         } else {
-            plan_err!("table not found")
+            // Handle with custom query execution
+            self.execute_database_query(sql).await
         }
     }
 
-    fn get_function_meta(&self, _name: &str) -> Option<Arc<ScalarUDF>> {
-        None
+    /// Determine if the query is for an external file. External files
+    /// include CSV, Parquet, JSON, etc. files.
+    fn is_external_file_query(&self, sql: &str) -> bool {
+        // TODO: make this more robust
+        sql.contains(".csv") || sql.contains(".parquet") || sql.contains(".json")
     }
 
-    fn get_aggregate_meta(&self, _name: &str) -> Option<Arc<AggregateUDF>> {
-        None
+    async fn execute_external_file_query(&self, query: &str) -> Result<()> {
+        let (rewritten_query, file_path, format) = self.rewrite_query(query)?;
+
+        match format {
+            FileFormat::CSV => {
+                self.context
+                    .register_csv("csv_table", &file_path, CsvReadOptions::new())
+                    .await?;
+            }
+            FileFormat::Parquet => {
+                self.context
+                    .register_parquet("parquet_table", &file_path, ParquetReadOptions::default())
+                    .await?;
+            }
+            FileFormat::ORC => {
+                // Register ORC file when supported
+                todo!();
+            }
+        }
+
+        let df = self.context.sql(&rewritten_query).await?;
+        df.show().await?;
+
+        Ok(())
     }
 
-    fn get_variable_type(&self, _variable_names: &[String]) -> Option<DataType> {
-        None
+    fn rewrite_query(&self, query: &str) -> Result<(String, String, FileFormat)> {
+        // Regex for unquoted file path
+        let unquoted_re = Regex::new(r"FROM\s+([^\s']+\.csv|parquet|orc)")
+            .expect("Invalid regex for unquoted path");
+        // Regex for file path with single quotes
+        let quoted_re = Regex::new(r"FROM\s+'([^\s']+\.csv|parquet|orc)'")
+            .expect("Invalid regex for quoted path");
+
+        let file_path = if let Some(caps) = unquoted_re.captures(query) {
+            caps.get(1).map(|m| m.as_str()).unwrap()
+        } else if let Some(caps) = quoted_re.captures(query) {
+            caps.get(1).map(|m| m.as_str()).unwrap()
+        } else {
+            return Err(DataFusionError::Execution(format!(
+                "No file found in query: {}",
+                query
+            )));
+        };
+
+        let file_ext = if file_path.ends_with(".csv") {
+            "csv"
+        } else if file_path.ends_with(".parquet") {
+            "parquet"
+        } else if file_path.ends_with(".orc") {
+            "orc"
+        } else {
+            return Err(DataFusionError::Execution(format!(
+                "Unsupported file format in query: {}",
+                query
+            )));
+        };
+
+        let table_name = match file_ext {
+            "csv" => "csv_table",
+            "parquet" => "parquet_table",
+            "orc" => "orc_table",
+            _ => unreachable!(),
+        };
+
+        let rewritten_query = query.replace(file_path, table_name);
+
+        debug!("Rewritten query: {}", rewritten_query);
+        debug!("File path: {}", file_path);
+
+        let format = match file_ext {
+            "csv" => FileFormat::CSV,
+            "parquet" => FileFormat::Parquet,
+            "orc" => FileFormat::ORC,
+            _ => unreachable!(),
+        };
+
+        Ok((rewritten_query, file_path.to_string(), format))
     }
 
-    fn get_window_meta(&self, _name: &str) -> Option<Arc<WindowUDF>> {
-        None
+    async fn execute_database_query(&self, sql: &str) -> Result<()> {
+        let ast = parse_sql(sql)?;
+        let logical_plan = self.create_logical_plan(&ast)?;
+        let optimized_plan = self.optimize_plan(&logical_plan)?;
+        self.execute_optimized_plan(&optimized_plan).await
     }
 
-    fn options(&self) -> &ConfigOptions {
-        &self.options
-    }
-}
-
-struct MyTableSource {
-    schema: SchemaRef,
-}
-
-impl TableSource for MyTableSource {
-    fn as_any(&self) -> &dyn Any {
-        self
+    fn create_logical_plan(&self, ast: &[Statement]) -> Result<LogicalPlan> {
+        // Implement logic to create a logical plan from the AST
+        todo!()
     }
 
-    fn schema(&self) -> SchemaRef {
-        self.schema.clone()
+    fn optimize_plan(&self, logical_plan: &LogicalPlan) -> Result<LogicalPlan> {
+        // Implement optimization logic
+        todo!()
+    }
+
+    async fn execute_optimized_plan(&self, optimized_plan: &LogicalPlan) -> Result<()> {
+        // Implement execution logic for the optimized plan
+        todo!()
     }
 }

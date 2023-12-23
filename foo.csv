@@ -1,0 +1,4 @@
+student_id,first_name,last_name,email,phone_number
+1,John,Doe,johndoe@example.com,123-456-7890
+2,Jane,Smith,janesmith@example.com,987-654-3210
+3,Michael,Johnson,michaeljohnson@example.com,555-555-5555
