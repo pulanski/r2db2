@@ -28,6 +28,9 @@ pub enum DiskManagerError {
     // read/write errors
 }
 
+/// A reference-counted [`DiskManager`] handle that can be shared across threads.
+pub type DiskManagerRef = Arc<DiskManager>;
+
 /// DiskManager handles disk-based storage operations.
 /// It provides synchronous and asynchronous methods to read and write pages of data.
 ///

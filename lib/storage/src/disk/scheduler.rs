@@ -5,6 +5,7 @@ use super::DiskManager;
 use crate::disk::setup_dm;
 use anyhow::Result;
 use common::{PageId, PAGE_SIZE};
+use getset::{Getters, Setters};
 use parking_lot::Mutex;
 use std::cmp::Ordering;
 use std::sync::Arc;
@@ -12,7 +13,8 @@ use std::time::{Duration, Instant};
 use thiserror::Error;
 use tokio::sync::{mpsc, oneshot};
 use tokio::task;
-use tracing::{error, info, instrument, trace, warn, debug};
+use tracing::{debug, error, info, instrument, trace, warn};
+use typed_builder::TypedBuilder;
 
 #[derive(Error, Debug)]
 pub enum DiskSchedulerError {
@@ -28,7 +30,8 @@ pub enum DiskSchedulerError {
 }
 
 /// Represents a disk operation request with a completion signal.
-#[derive(Debug)]
+#[derive(Debug, Getters, Setters, TypedBuilder)]
+#[getset(get = "pub")]
 pub struct DiskRequest {
     /// Whether this is a read or write request
     is_write: bool,
@@ -47,14 +50,14 @@ pub struct DiskRequest {
 
 impl Clone for DiskRequest {
     fn clone(&self) -> Self {
-        DiskRequest {
-            is_write: self.is_write,
-            data: self.data.clone(),
-            page_id: self.page_id,
-            completion_signal: None, // NOTE: No completion signal for cloned requests
-            read_data_sender: self.read_data_sender.clone(),
-            priority: self.priority,
-        }
+        DiskRequest::builder()
+            .is_write(self.is_write)
+            .data(self.data.clone())
+            .page_id(self.page_id)
+            .completion_signal(None) // NOTE: Reset the completion signal (if any)
+            .read_data_sender(self.read_data_sender.clone())
+            .priority(self.priority)
+            .build()
     }
 }
 
@@ -67,14 +70,14 @@ impl DiskRequest {
         read_data_sender: Option<mpsc::Sender<Vec<u8>>>,
         priority: u8,
     ) -> Self {
-        DiskRequest {
-            is_write,
-            data,
-            page_id,
-            completion_signal,
-            read_data_sender,
-            priority,
-        }
+        DiskRequest::builder()
+            .is_write(is_write)
+            .data(data)
+            .page_id(page_id)
+            .completion_signal(completion_signal)
+            .read_data_sender(read_data_sender)
+            .priority(priority)
+            .build()
     }
 
     pub async fn complete(&mut self) {

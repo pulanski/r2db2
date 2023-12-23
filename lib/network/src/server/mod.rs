@@ -24,9 +24,15 @@ pub async fn start_server(args: &ServeArgs) {
     info!(public_ip = ?public_ip, "Listening at IP address");
 
     let middleware_stack = middleware::MiddlewareStack::new();
+    let max_txns = args.max_txns().clone();
+    let max_connections = args.max_connections().clone();
 
     if protocol == NetworkProtocol::TCP {
-        let server = tcp::DbServer::new(tcp_addr, middleware_stack);
+        let mut server = tcp::DbServer::new(tcp_addr, middleware_stack, max_txns, max_connections);
+
+        // Start background tasks
+        // server.start_background_tasks();
+        server.start_metrics_logging().await;
 
         // Start the metrics server (if enabled)
         if *args.metrics() {

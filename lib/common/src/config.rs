@@ -20,12 +20,12 @@ pub const PAGE_SIZE: usize = 4096;
 
 /// The size of the buffer pool (in frames). Specifies the number of pages that can be held in
 /// memory at any given time. The buffer pool is the primary mechanism for storing pages in memory.
-pub const BUFFER_POOL_SIZE: usize = 10;
+pub const BUFFER_POOL_SIZE: usize = 100;
 
 /// The maximum number of concurrent transactions. Sets an upper limit on the number of transactions
 /// that can be processed concurrently by the DBMS. This is used to initialize the scheduler.
 /// Transactions beyond this limit will be blocked until a transaction completes.
-pub const MAX_TRANSACTIONS: usize = 10;
+pub const MAX_TRANSACTIONS: usize = 100;
 
 pub const TCP_PORT: u16 = 2345;
 pub const UDP_PORT: u16 = 2346;
