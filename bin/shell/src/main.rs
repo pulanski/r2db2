@@ -2,6 +2,7 @@ use anyhow::Result;
 use clap::Parser;
 use cli::{tui::handle_sql_command, Cli, Commands, MigrateArgs, SqlArgs};
 use common::util::trace::initialize_tracing;
+use compile::parser::parse;
 use network::client::start_client;
 use network::server::start_server;
 use std::{process::ExitCode, time::Instant};
@@ -9,6 +10,25 @@ use tracing::{info, trace};
 
 #[tokio::main]
 async fn main() -> Result<ExitCode> {
+    // let query =
+    // // "SELECT * FROM users"; // Syntactically valid SQL
+    // // "SELECT id, name FROM customers WHERE (age > 25 AND city = 'New York' AND age < 25"; // Unbalanced parenthesis
+    // // "FROM orders SELECT * WHERE order_date = '2023-01-01'"; // Missing SELECT in FROM clause
+    // "foo '"; // Unterminated string
+
+    // // match sqlparser::parser::Parser::parse_sql(&sqlparser::dialect::PostgreSqlDialect {}, query) {
+    // match parse(query) {
+    //     Ok(ast) => {
+    //         println!("AST: {:#?}", ast);
+    //     }
+
+    //     Err(e) => {
+    //         println!("Error: {:#?}", e);
+    //     }
+    // }
+
+    // Ok(ExitCode::SUCCESS)
+
     // TODO: Add profiling to various parts end-user facing subsystems (server, client, shell, etc.)
     // #[cfg(debug_assertions)] // Only run profiling in debug mode
     // {
@@ -49,12 +69,12 @@ async fn async_main() -> Result<ExitCode> {
                     .command(None)
                     .build(),
             )
-            .await;
+            .await?;
         }
         Some(command) => match command {
             Commands::Sql(args) => {
                 info!("Executing SQL command");
-                handle_sql_command(args).await;
+                handle_sql_command(args).await?;
             }
             Commands::Serve(args) => {
                 start_server(args).await;

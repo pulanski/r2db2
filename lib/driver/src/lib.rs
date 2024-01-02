@@ -1,15 +1,17 @@
 #![allow(dead_code)]
-
 use anyhow::Result;
 use buffer::{BufferPoolManager, ReplacementPolicy};
 use execution::QueryEngine;
 use std::{
+    io::{self, Write},
     sync::Arc,
     time::{Duration, Instant},
 };
 use storage::disk::DiskManager;
 use tracing::{error, info, instrument, trace};
 use typed_builder::TypedBuilder;
+
+pub mod shell;
 
 #[instrument]
 async fn parse_query(query: &str) -> Ast {
@@ -64,6 +66,7 @@ struct OptimizedPlan;
 #[derive(Debug)]
 struct PhysicalPlan;
 
+/// A reference-counted reference to a [`Driver`].
 pub type DriverRef = Arc<Driver>;
 #[derive(Debug, TypedBuilder)]
 pub struct Driver {
@@ -101,12 +104,31 @@ impl Driver {
     }
 
     /// Process a SQL command
-    #[instrument(skip(self, command))]
-    pub async fn process_sql_command(&self, command: Option<String>) {
-        let query = command.unwrap_or_else(|| "SELECT NOW();".to_string());
-        match self.query_engine.execute_query(&query).await {
+    pub async fn process_sql_command(&self, command: &String) {
+        match self.query_engine.execute_query(&command).await {
             Ok(_) => info!("Query executed successfully"),
             Err(e) => error!("Failed to execute query: {:?}", e),
+        }
+    }
+
+    pub async fn start_shell(&self) {
+        loop {
+            print!("r2db2> ");
+            io::stdout().flush().expect("Failed to flush stdout");
+
+            let mut input = String::new();
+            io::stdin()
+                .read_line(&mut input)
+                .expect("Failed to read line");
+
+            let parts: Vec<&str> = input.split_whitespace().collect();
+
+            match parts.as_slice() {
+                [".exit"] => break,
+                _ => {
+                    println!("Invalid command");
+                }
+            }
         }
     }
 }

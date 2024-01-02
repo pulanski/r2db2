@@ -29,7 +29,7 @@ use typed_builder::TypedBuilder;
 /// Represents an entry in LFU cache, used for ordering in the priority queue.
 #[derive(Debug, PartialEq, Eq, Getters, Setters, TypedBuilder)]
 #[getset(get = "pub", set = "pub")]
-struct LFUEntry {
+pub struct LFUEntry {
     frame_id: FrameId,
     frequency: usize,
     last_access: Instant,

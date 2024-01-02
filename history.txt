@@ -1,0 +1,16 @@
+asdf
+SELECT * FROM FOO WHERE BAR = 3;
+SELECT *, MAX(BAR) FROM FOO WHERE BAR = 3;
+SELECT *, MAX(BAR) FROM FOO WHERE BAR = 3 AND BAZ LIKE "&";
+.help
+.bail
+.bail 
+.bail on
+.bail 
+SELECT *, MAX(BAR) FROM FOO WHERE BAR = 3 AND BAZ LIKE "&";
+SELECT department, AVG(salary) AS average_salary
+SELECT department, AVG(salary) AS average_salary FROM testdata/employee.csv GROUP BY department;
+SELECT department, AVG(salary) AS average_salary FROM 'testdata/employee.csv' GROUP BY department;
+.help
+.foobar
+.help

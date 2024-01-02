@@ -9,7 +9,7 @@ use datafusion::prelude::*;
 use datafusion_common::{plan_err, DataFusionError, Result, ScalarValue};
 use tracing::{debug, instrument, trace};
 
-pub enum FileFormat {
+pub enum ExternalDataSource {
     CSV,
     Parquet,
     ORC,
@@ -37,37 +37,37 @@ impl QueryEngine {
 
     pub async fn execute_query(&self, sql: &str) -> Result<()> {
         // Determine the type of query (internal database table or external file (CSV, Parquet, etc.))
-        if self.is_external_file_query(sql) {
+        if self.is_external_datasource(sql) {
             // Delegate to DataFusion engine
-            self.execute_external_file_query(sql).await
+            self.execute_external_datasource_query(sql).await
         } else {
             // Handle with custom query execution
             self.execute_database_query(sql).await
         }
     }
 
-    /// Determine if the query is for an external file. External files
+    /// Determine if the query is for an external datasource. External datasources
     /// include CSV, Parquet, JSON, etc. files.
-    fn is_external_file_query(&self, sql: &str) -> bool {
+    fn is_external_datasource(&self, sql: &str) -> bool {
         // TODO: make this more robust
         sql.contains(".csv") || sql.contains(".parquet") || sql.contains(".json")
     }
 
-    async fn execute_external_file_query(&self, query: &str) -> Result<()> {
+    async fn execute_external_datasource_query(&self, query: &str) -> Result<()> {
         let (rewritten_query, file_path, format) = self.rewrite_query(query)?;
 
         match format {
-            FileFormat::CSV => {
+            ExternalDataSource::CSV => {
                 self.context
                     .register_csv("csv_table", &file_path, CsvReadOptions::new())
                     .await?;
             }
-            FileFormat::Parquet => {
+            ExternalDataSource::Parquet => {
                 self.context
                     .register_parquet("parquet_table", &file_path, ParquetReadOptions::default())
                     .await?;
             }
-            FileFormat::ORC => {
+            ExternalDataSource::ORC => {
                 // Register ORC file when supported
                 todo!();
             }
@@ -79,7 +79,7 @@ impl QueryEngine {
         Ok(())
     }
 
-    fn rewrite_query(&self, query: &str) -> Result<(String, String, FileFormat)> {
+    fn rewrite_query(&self, query: &str) -> Result<(String, String, ExternalDataSource)> {
         // Regex for unquoted file path
         let unquoted_re = Regex::new(r"FROM\s+([^\s']+\.csv|parquet|orc)")
             .expect("Invalid regex for unquoted path");
@@ -124,9 +124,9 @@ impl QueryEngine {
         debug!("File path: {}", file_path);
 
         let format = match file_ext {
-            "csv" => FileFormat::CSV,
-            "parquet" => FileFormat::Parquet,
-            "orc" => FileFormat::ORC,
+            "csv" => ExternalDataSource::CSV,
+            "parquet" => ExternalDataSource::Parquet,
+            "orc" => ExternalDataSource::ORC,
             _ => unreachable!(),
         };
 
