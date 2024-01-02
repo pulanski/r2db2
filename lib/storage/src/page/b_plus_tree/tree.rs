@@ -6,7 +6,7 @@ use std::fmt::Debug;
 use typed_builder::TypedBuilder;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-enum BPlusTreeNode<KeyType, ValueType> {
+pub enum BPlusTreeNode<KeyType, ValueType> {
     Internal(BPlusTreeInternalPage<KeyType, ValueType>),
     Leaf(BPlusTreeLeafPage<KeyType, ValueType>),
 }

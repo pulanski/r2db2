@@ -13,7 +13,7 @@ pub type Spanned<T> = (T, Span);
 pub type Span = Range<usize>;
 
 pub type LocatableError = Spanned<CompileError>;
-pub type Result<T, E = LocatableError> = std::result::Result<T, E>;
+pub type LocatableResult<T, E = LocatableError> = std::result::Result<T, E>;
 
 macro_rules! impl_from {
     ($($error:tt),+) => {$(
@@ -27,7 +27,7 @@ macro_rules! impl_from {
 
 impl_from!(NameError, SyntaxError, TypeError);
 
-trait ToDiagnostic {
+pub trait ToDiagnostic {
     fn to_diagnostic(&self, span: &Span) -> Diagnostic<()>;
 }
 
@@ -68,17 +68,23 @@ impl ToDiagnostic for NameError {
     }
 }
 
-#[derive(Debug, Error, Eq, PartialEq)]
+#[derive(Debug, Error, Clone, Eq, PartialEq)]
 pub enum SyntaxError {
     #[error("unexpected token: {token:?} expected: {expected:?}")]
     UnexpectedToken {
         token: String,
         expected: Vec<String>,
     },
-    #[error("unterminated string")]
+    #[error("Unterminated string literal. Expected a closing quote (\").")]
     UnterminatedString,
     #[error("unexpected end of file")]
     UnexpectedEOF { expected: Vec<String> },
+    #[error("misspelled keyword: {0}")]
+    MisspelledKeyword(String),
+    #[error("non-existent column: {0}")]
+    NonExistentColumn(String),
+    #[error("missing FROM clause")]
+    MissingFromClause,
 }
 
 impl ToDiagnostic for SyntaxError {
@@ -91,6 +97,9 @@ impl ToDiagnostic for SyntaxError {
             SyntaxError::UnexpectedEOF { expected, .. }
             | SyntaxError::UnexpectedToken { expected, .. } => {
                 diagnostic = diagnostic.with_notes(vec![format!("expected: {}", one_of(expected))]);
+            }
+            SyntaxError::UnterminatedString => {
+                diagnostic = diagnostic.with_notes(vec![String::from("expected: \"")]);
             }
             _ => {}
         };

@@ -10,6 +10,7 @@ cli = { path = "../../lib/cli" }
 common = { path = "../../lib/common" }
 network = { path = "../../lib/network" }
 metrics = { path = "../../lib/metrics" }
+compile = { path = "../../lib/compile" }
 
 clap = { version = "4.4.11", features = ["derive"] }
 tracing-subscriber = "0.3.18"
@@ -20,3 +21,4 @@ futures = "0.3"
 rand = "0.8"
 tokio = { version = "1", features = ["full"] }
 anyhow = "1.0"
+sqlparser = "0.41.0"
